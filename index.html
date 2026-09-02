@@ -13,7 +13,12 @@
     --muted:#9ca3af;
     --accent:#3b82f6;
     --accent-soft:#18243a;
-    --sun:#e0433f;
+    --surface-soft:#1d222d;
+    --surface-hover:#202633;
+    --input-bg:#171a22;
+    --chip-bg:#222733;
+    --bar-bg:#2a303c;
+    --sun:#f87171;
     --sat:#2563eb;
     --cat-brand:#8b5cf6;
     --cat-launch:#3b82f6;
@@ -25,6 +30,25 @@
     --radius-sm:8px;
     --shadow:0 1px 2px rgba(16,24,40,.04), 0 4px 12px rgba(16,24,40,.05);
   }
+
+  body.light-mode{
+    --bg:#f4f5fa;
+    --card:#ffffff;
+    --border:#e5e7eb;
+    --text:#1f2330;
+    --muted:#6b7280;
+    --accent:#4f46e5;
+    --accent-soft:#eef0fd;
+    --surface-soft:#f3f4f6;
+    --surface-hover:#fafbff;
+    --input-bg:#ffffff;
+    --chip-bg:#ffffff;
+    --bar-bg:#f0f1f4;
+    --sun:#e0433f;
+    --sat:#2563eb;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 4px 12px rgba(16,24,40,.05);
+  }
+
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -87,6 +111,12 @@
     width:auto !important;height:32px;white-space:nowrap;writing-mode:horizontal-tb;text-orientation:mixed;
   }
   .toolbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .all-view-btn{
+    border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:9px;
+    padding:8px 12px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;
+  }
+  .all-view-btn:hover{background:var(--surface-hover);}
+  .all-view-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
   select#productSelect{
     border:1px solid var(--border);border-radius:9px;padding:8px 32px 8px 12px;font-size:13.5px;
     font-weight:700;background:var(--card);cursor:pointer;color:var(--text);appearance:none;
@@ -95,7 +125,7 @@
   }
   .legend{display:flex;flex-wrap:wrap;gap:6px;}
   .legend-chip{
-    display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;
+    display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--chip-bg);color:var(--text);
     padding:6px 10px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;user-select:none;
   }
   .legend-chip .dot{width:8px;height:8px;border-radius:50%;flex:none;}
@@ -166,10 +196,10 @@
     display:flex;align-items:center;gap:12px;padding:9px 10px;border:1px solid var(--border);
     border-radius:10px;margin-bottom:6px;cursor:pointer;background:var(--card);
   }
-  .ov-row:hover{background:#fafbff;border-color:var(--accent);}
+  .ov-row:hover{background:var(--surface-hover);border-color:var(--accent);}
   .ov-row:last-child{margin-bottom:0;}
   .ov-name{font-size:13.5px;font-weight:800;flex:0 0 90px;}
-  .ov-bar-wrap{flex:1;height:9px;background:#f0f1f4;border-radius:6px;overflow:hidden;}
+  .ov-bar-wrap{flex:1;height:9px;background:var(--bar-bg);border-radius:6px;overflow:hidden;}
   .ov-bar-fill{height:100%;background:var(--accent);border-radius:6px;}
   .ov-pct{font-size:13px;font-weight:800;flex:0 0 40px;text-align:right;}
   .ov-meta{font-size:11.5px;color:var(--muted);font-weight:600;flex:0 0 180px;text-align:right;}
@@ -186,7 +216,7 @@
   .chk-overall-top{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
   .chk-overall-pct{font-size:26px;font-weight:800;color:var(--accent);}
   .chk-overall-sub{font-size:12.5px;color:var(--muted);font-weight:600;}
-  .chk-overall-bar{height:10px;background:#f0f1f4;border-radius:6px;overflow:hidden;}
+  .chk-overall-bar{height:10px;background:var(--bar-bg);border-radius:6px;overflow:hidden;}
   .chk-overall-bar-fill{height:100%;background:var(--accent);border-radius:6px;}
 
   .chk-block{margin-bottom:14px;}
@@ -198,7 +228,7 @@
   .chk-group-head .dot{width:9px;height:9px;border-radius:50%;flex:none;}
   .chk-group-title{font-size:13.5px;font-weight:800;flex:none;}
   .chk-group-count{font-size:11.5px;color:var(--muted);font-weight:700;flex:none;}
-  .chk-group-bar{flex:1;height:6px;background:#f0f1f4;border-radius:4px;overflow:hidden;max-width:160px;}
+  .chk-group-bar{flex:1;height:6px;background:var(--bar-bg);border-radius:4px;overflow:hidden;max-width:160px;}
   .chk-group-bar-fill{height:100%;border-radius:4px;}
 
   .chk-row{
@@ -206,7 +236,7 @@
     border-radius:10px;margin-bottom:6px;cursor:pointer;background:var(--card);
   }
   .chk-row:last-child{margin-bottom:0;}
-  .chk-row:hover{background:#fafbff;}
+  .chk-row:hover{background:var(--surface-hover);}
   .chk-icon{
     flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-size:13px;font-weight:800;background:#f3f4f6;color:#9ca3af;
@@ -242,7 +272,7 @@
   .modal h3{margin:0 0 4px;font-size:17px;font-weight:800;}
   .modal .modal-sub{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
   .modal-close{
-    float:right;border:none;background:#f3f4f6;width:28px;height:28px;border-radius:50%;
+    float:right;border:none;background:var(--surface-soft);width:28px;height:28px;border-radius:50%;
     cursor:pointer;font-size:14px;color:var(--muted);
   }
   .event-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
@@ -258,16 +288,16 @@
   .settings-field label{font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;}
   .sheet-row{display:flex;gap:6px;margin-bottom:6px;align-items:center;}
   .sheet-row input.sheet-name{
-    flex:0 0 100px;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:12.5px;
+    flex:0 0 100px;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:12.5px;background:var(--input-bg);color:var(--text);
   }
   .sheet-row input.sheet-url{
-    flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:11.8px;font-family:monospace;
+    flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:11.8px;font-family:monospace;background:var(--input-bg);color:var(--text);
   }
   .sheet-row .sheet-remove{
     flex:none;width:28px;height:28px;border:none;background:#f3f4f6;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;
   }
   .add-row-btn{
-    border:1px dashed var(--border);background:#fafafe;border-radius:8px;padding:7px 12px;
+    border:1px dashed var(--border);background:var(--surface-soft);border-radius:8px;padding:7px 12px;
     font-size:12.5px;font-weight:700;cursor:pointer;color:var(--accent);margin-top:2px;
   }
   .settings-actions{display:flex;gap:8px;margin:12px 0 16px;}
@@ -275,7 +305,7 @@
     border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;
   }
   .btn.primary{background:var(--accent);color:#fff;}
-  .btn.ghost{background:#f3f4f6;color:var(--text);}
+  .btn.ghost{background:var(--surface-soft);color:var(--text);}
   .code-box{
     background:#111827;color:#d1fae5;font-family:monospace;font-size:11.5px;padding:12px 14px;
     border-radius:10px;white-space:pre-wrap;word-break:break-all;margin-bottom:14px;position:relative;
@@ -319,7 +349,8 @@
       <button class="today-btn" id="todayBtn" type="button">오늘</button>
     </div>
     <div class="toolbar-right">
-      <select id="productSelect"></select>
+      <button class="all-view-btn active" id="allViewBtn" type="button">전체 보기</button>
+      <select id="productSelect" aria-label="제품별 보기"></select>
       <div class="legend" id="legend"></div>
     </div>
   </div>
@@ -742,13 +773,16 @@
     state.events.forEach(function(ev){ if(!ev.overall) products[ev.product] = true; });
     var list = Object.keys(products).sort(function(a,b){ return a.localeCompare(b, 'ko'); });
     var current = state.selectedProduct;
-    sel.innerHTML = '<option value="ALL">전체 보기 (모든 제품)</option>' +
+    sel.innerHTML = '<option value="" disabled>제품별 보기</option>' +
       list.map(function(p){ return '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>'; }).join('');
     if(current !== 'ALL' && list.indexOf(current) === -1){ current = 'ALL'; }
-    sel.value = current;
     state.selectedProduct = current;
+    sel.value = current === 'ALL' ? '' : current;
+    document.getElementById('allViewBtn').classList.toggle('active', current === 'ALL');
     sel.onchange = function(){
+      if(!sel.value) return;
       state.selectedProduct = sel.value;
+      document.getElementById('allViewBtn').classList.remove('active');
       renderCalendar(); renderSummary(); renderProductDetail(); renderProductOverview();
     };
   }
@@ -815,6 +849,7 @@
         var p = row.getAttribute('data-product');
         state.selectedProduct = p;
         document.getElementById('productSelect').value = p;
+        document.getElementById('allViewBtn').classList.remove('active');
         renderCalendar(); renderSummary(); renderProductDetail(); renderProductOverview();
       };
     });
@@ -1128,6 +1163,8 @@
     document.body.classList.toggle('light-mode', light);
     document.getElementById('darkModeBtn').classList.toggle('active', !light);
     document.getElementById('lightModeBtn').classList.toggle('active', light);
+    document.getElementById('darkModeBtn').setAttribute('aria-pressed', String(!light));
+    document.getElementById('lightModeBtn').setAttribute('aria-pressed', String(light));
     try{ localStorage.setItem('marketingTimelineTheme', light ? 'light' : 'dark'); }catch(e){}
   }
   document.getElementById('darkModeBtn').onclick = function(){ applyTheme('dark'); };
@@ -1140,6 +1177,13 @@
   /* =====================================================
      7. 툴바 이벤트
   ===================================================== */
+  document.getElementById('allViewBtn').onclick = function(){
+    state.selectedProduct = 'ALL';
+    document.getElementById('productSelect').value = '';
+    this.classList.add('active');
+    renderCalendar(); renderSummary(); renderProductDetail(); renderProductOverview();
+  };
+
   document.getElementById('prevMonth').onclick = function(){
     state.viewMonth--; if(state.viewMonth < 0){ state.viewMonth = 11; state.viewYear--; }
     renderCalendar();
