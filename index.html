@@ -6,13 +6,13 @@
 <title>브랜드 체크리스트 & 마케팅 타임라인 대시보드</title>
 <style>
   :root{
-    --bg:#f4f5fa;
-    --card:#ffffff;
-    --border:#e5e7eb;
-    --text:#1f2330;
-    --muted:#6b7280;
-    --accent:#4f46e5;
-    --accent-soft:#eef0fd;
+    --bg:#0f1117;
+    --card:#171a22;
+    --border:#2a2f3a;
+    --text:#f3f4f6;
+    --muted:#9ca3af;
+    --accent:#3b82f6;
+    --accent-soft:#18243a;
     --sun:#e0433f;
     --sat:#2563eb;
     --cat-brand:#8b5cf6;
@@ -50,7 +50,11 @@
     padding:8px 12px;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;
     box-shadow:var(--shadow);
   }
-  .icon-btn:hover{background:#fafafe;}
+  .icon-btn:hover{background:var(--accent-soft);}
+  .theme-toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--card);box-shadow:var(--shadow);}
+  .theme-toggle button{border:0;background:transparent;color:var(--muted);padding:8px 11px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .theme-toggle button.active{background:var(--accent);color:#fff;}
+  .sheet-link-btn{text-decoration:none;}
 
   /* ---------- Banner ---------- */
   .banner{
@@ -72,19 +76,20 @@
   }
   .month-nav{display:flex;align-items:center;gap:10px;}
   .month-nav button{
-    width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:#fff;
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);
     cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;
   }
   .month-nav button:hover{background:var(--accent-soft);}
   .month-nav .label{font-size:17px;font-weight:800;min-width:110px;text-align:center;}
   .today-btn{
-    border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 12px;
+    border:1px solid var(--border);background:var(--card);border-radius:8px;padding:6px 12px;
     font-size:12.5px;font-weight:700;cursor:pointer;color:var(--accent);
+    width:auto !important;height:32px;white-space:nowrap;writing-mode:horizontal-tb;text-orientation:mixed;
   }
   .toolbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   select#productSelect{
     border:1px solid var(--border);border-radius:9px;padding:8px 32px 8px 12px;font-size:13.5px;
-    font-weight:700;background:#fff;cursor:pointer;color:var(--text);appearance:none;
+    font-weight:700;background:var(--card);cursor:pointer;color:var(--text);appearance:none;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
     background-repeat:no-repeat;background-position:right 12px center;
   }
@@ -120,11 +125,11 @@
   .weekday-row div:last-child{color:var(--sat);}
   .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));}
   .day-cell{
-    min-height:112px;min-width:0;border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+    min-height:145px;min-width:0;border-right:1px solid var(--border);border-bottom:1px solid var(--border);
     padding:6px 6px 8px;position:relative;cursor:default;overflow:hidden;
   }
   .day-cell:nth-child(7n){border-right:none;}
-  .day-cell.other{background:#fafafa;}
+  .day-cell.other{background:rgba(127,127,127,.06);}
   .day-cell.other .daynum{color:#c6c9d1;}
   .day-cell .daynum{
     font-size:12.5px;font-weight:700;color:var(--text);display:inline-flex;
@@ -132,12 +137,13 @@
   }
   .day-cell.sun .daynum{color:var(--sun);}
   .day-cell.sat .daynum{color:var(--sat);}
+  .day-cell.today{box-shadow:inset 0 0 0 2px #3b82f6;z-index:1;}
   .day-cell.today .daynum{background:var(--accent);color:#fff;}
   .chips{margin-top:4px;display:flex;flex-direction:column;gap:2px;min-width:0;}
   .event-chip{
     font-size:10.8px;font-weight:600;padding:2.5px 6px;border-radius:5px;cursor:pointer;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid transparent;
-    background:#f3f4f6;color:#111827;min-width:0;max-width:100%;
+    background:rgba(127,127,127,.14);color:var(--text);min-width:0;max-width:100%;
   }
   .event-chip.cat-brand{background:#f3ecff;border-color:var(--cat-brand);color:#5b21b6;}
   .event-chip.cat-launch{background:#e9f1ff;border-color:var(--cat-launch);color:#1e40af;}
@@ -158,7 +164,7 @@
   .product-overview h2{font-size:15px;margin:0 0 12px;font-weight:800;}
   .ov-row{
     display:flex;align-items:center;gap:12px;padding:9px 10px;border:1px solid var(--border);
-    border-radius:10px;margin-bottom:6px;cursor:pointer;background:#fff;
+    border-radius:10px;margin-bottom:6px;cursor:pointer;background:var(--card);
   }
   .ov-row:hover{background:#fafbff;border-color:var(--accent);}
   .ov-row:last-child{margin-bottom:0;}
@@ -197,7 +203,7 @@
 
   .chk-row{
     display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);
-    border-radius:10px;margin-bottom:6px;cursor:pointer;background:#fff;
+    border-radius:10px;margin-bottom:6px;cursor:pointer;background:var(--card);
   }
   .chk-row:last-child{margin-bottom:0;}
   .chk-row:hover{background:#fafbff;}
@@ -230,7 +236,7 @@
   }
   .modal-overlay[hidden]{display:none;}
   .modal{
-    background:#fff;border-radius:16px;max-width:540px;width:100%;max-height:82vh;overflow:auto;
+    background:var(--card);color:var(--text);border-radius:16px;max-width:540px;width:100%;max-height:82vh;overflow:auto;
     padding:20px 22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25);
   }
   .modal h3{margin:0 0 4px;font-size:17px;font-weight:800;}
@@ -247,7 +253,7 @@
   .event-card .cat-label .dot{width:8px;height:8px;border-radius:50%;}
   .event-card .title{font-size:14.5px;font-weight:800;margin:2px 0 6px;}
   .event-card .meta-line{font-size:12.5px;color:var(--muted);margin-bottom:2px;}
-  .event-card .note{font-size:12.5px;color:#374151;background:#f9fafb;padding:8px 10px;border-radius:8px;margin-top:6px;}
+  .event-card .note{font-size:12.5px;color:var(--text);background:rgba(127,127,127,.08);padding:8px 10px;border-radius:8px;margin-top:6px;}
 
   .settings-field label{font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;}
   .sheet-row{display:flex;gap:6px;margin-bottom:6px;align-items:center;}
@@ -293,6 +299,11 @@
       <div class="sub" id="lastUpdatedText">불러오는 중...</div>
     </div>
     <div class="head-actions">
+      <div class="theme-toggle" aria-label="화면 테마">
+        <button id="darkModeBtn" type="button" class="active">다크모드</button>
+        <button id="lightModeBtn" type="button">라이트모드</button>
+      </div>
+      <a class="icon-btn sheet-link-btn" id="sheetShortcutBtn" href="#" target="_blank" rel="noopener">↗ 스프레드시트로 바로가기</a>
       <button class="icon-btn" id="refreshBtn" type="button">↻ 새로고침</button>
       <button class="icon-btn" id="settingsBtn" type="button">⚙ 시트 연결 설정</button>
     </div>
@@ -353,7 +364,7 @@
   <div class="modal">
     <button class="modal-close" data-close="settingsModal" type="button">✕</button>
     <h3>⚙ 구글 시트 연결 설정</h3>
-    <div class="modal-sub">제품마다 시트(탭)를 따로 만들고, 탭별로 "웹에 게시(CSV)" 링크를 연결하세요. 탭 이름이 곧 제품명이 됩니다.</div>
+    <div class="modal-sub">하나의 구글 스프레드시트 안에 제품별 탭을 만들고 같은 스프레드시트 주소를 연결하세요. 탭 이름이 제품명과 같으면 자동으로 해당 탭을 불러옵니다.</div>
 
     <div class="settings-field">
       <label>제품별 시트 연결</label>
@@ -393,15 +404,15 @@
         여기에 적어두면 파일을 다시 열 때도 자동으로 연결됩니다.
   ===================================================== */
   var CONFIG = {
+    SPREADSHEET_URL: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547",
     PRODUCTS: [
-      { name: "PH스탠드", url: "" },
-      { name: "킥프레임", url: "" },
-      { name: "맥세이프케이스", url: "" },
-      { name: "DW플러스", url: "" },
-      { name: "DW프로", url: "" },
-      { name: "프레임팁", url: "" },
-      { name: "종합", url: "" }
-      // 탭별로 "웹에 게시" CSV 링크가 나오면 위 url: "" 자리에 붙여넣으세요.
+      { name: "PH스탠드", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "킥프레임", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "맥세이프케이스", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "DW플러스", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "DW프로", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "프레임팁", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "종합", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" }
     ],
     AUTO_REFRESH_MINUTES: 5
   };
@@ -619,8 +630,17 @@
     renderAll();
   }
 
+  function sheetCsvUrl(src){
+    var url = (src.url || '').trim();
+    if(!url) return '';
+    if(/tqx=out:csv|output=csv|pub\?output=csv/i.test(url)) return url;
+    var m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if(!m) return url;
+    return 'https://docs.google.com/spreadsheets/d/' + m[1] + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(src.name);
+  }
+
   function fetchOneSheet(src){
-    return fetch(src.url.trim(), {cache:'no-store'})
+    return fetch(sheetCsvUrl(src), {cache:'no-store'})
       .then(function(res){
         if(!res.ok) throw new Error('HTTP ' + res.status);
         return res.text();
@@ -1025,7 +1045,7 @@
     row.className = 'sheet-row';
     row.innerHTML =
       '<input type="text" class="sheet-name" placeholder="제품명 (예: PH)" value="' + escapeHtml(name || '') + '">' +
-      '<input type="text" class="sheet-url" placeholder="웹에 게시된 CSV 링크" value="' + escapeHtml(url || '') + '">' +
+      '<input type="text" class="sheet-url" placeholder="구글 스프레드시트 주소 (같은 문서 사용 가능)" value="' + escapeHtml(url || '') + '">' +
       '<button type="button" class="sheet-remove">✕</button>';
     row.querySelector('.sheet-remove').onclick = function(){ row.remove(); updateCodeBoxFromRows(); };
     Array.prototype.forEach.call(row.querySelectorAll('input'), function(inp){
@@ -1099,6 +1119,23 @@
       document.getElementById('settingsModal').hidden = true;
     }
   });
+
+  /* =====================================================
+     화면 테마 + 스프레드시트 바로가기
+  ===================================================== */
+  function applyTheme(mode){
+    var light = mode === 'light';
+    document.body.classList.toggle('light-mode', light);
+    document.getElementById('darkModeBtn').classList.toggle('active', !light);
+    document.getElementById('lightModeBtn').classList.toggle('active', light);
+    try{ localStorage.setItem('marketingTimelineTheme', light ? 'light' : 'dark'); }catch(e){}
+  }
+  document.getElementById('darkModeBtn').onclick = function(){ applyTheme('dark'); };
+  document.getElementById('lightModeBtn').onclick = function(){ applyTheme('light'); };
+  document.getElementById('sheetShortcutBtn').href = CONFIG.SPREADSHEET_URL || '#';
+  var savedTheme = null;
+  try{ savedTheme = localStorage.getItem('marketingTimelineTheme'); }catch(e){}
+  applyTheme(savedTheme === 'light' ? 'light' : 'dark');
 
   /* =====================================================
      7. 툴바 이벤트
