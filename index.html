@@ -1003,7 +1003,16 @@
         return ad-bd||a.title.localeCompare(b.title,'ko');
       });
     }
-    function cadenceLabel(c){var s=(c||'').trim();return s||'구분 미지정';}
+    function cadenceLabel(c){
+      var s=String(c==null?'':c).replace(/[\u00A0\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,'').trim();
+      if(!s) return '구분 미지정';
+      if(/^(일회성|1회성|일회|1회|once)$/i.test(s)) return '일회성';
+      if(/^(일별|매일|daily)$/i.test(s)) return '일별';
+      if(/^(주별|주차별|매주|weekly)$/i.test(s)) return '주차별';
+      if(/^(월별|매월|monthly)$/i.test(s)) return '월별';
+      if(/^(필요시|필요할때|필요할때마다)$/i.test(s)) return '필요시';
+      return s;
+    }
     function cadenceMetric(catItems, cadence){
       var items=catItems.filter(function(ev){return cadenceLabel(ev.cadence)===cadence;});
       var done=items.filter(isHandled).length;
