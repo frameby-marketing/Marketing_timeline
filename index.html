@@ -164,7 +164,7 @@
   .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));}
   .day-cell{
     min-height:145px;min-width:0;border-right:1px solid var(--border);border-bottom:1px solid var(--border);
-    padding:6px 6px 8px;position:relative;cursor:default;overflow:hidden;
+    padding:6px 6px 8px;position:relative;cursor:default;overflow:visible;
   }
   .day-cell:nth-child(7n){border-right:none;}
   .day-cell.other{background:rgba(127,127,127,.06);}
@@ -195,6 +195,13 @@
   body.light-mode .event-chip:hover{filter:brightness(.95);}
   .event-chip.status-review{box-shadow:inset 0 0 0 1.5px #ef4444;font-weight:800;}
   .more-link{font-size:10.5px;color:var(--accent);font-weight:700;cursor:pointer;margin-top:1px;}
+  .calendar-span-bar{
+    position:absolute;left:6px;height:19px;line-height:19px;border-radius:5px;padding:0 7px;
+    font-size:10.8px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    color:#fff;cursor:pointer;z-index:6;box-shadow:0 1px 2px rgba(0,0,0,.16);
+  }
+  .calendar-span-bar:hover{filter:brightness(.9);}
+
 
   /* ---------- Product overview (leaderboard, ALL view) ---------- */
   .product-overview{
@@ -310,7 +317,10 @@
   .pd-sort-wrap{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);font-weight:800;}
   .pd-sort-select{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:8px;padding:7px 30px 7px 10px;font:inherit;font-size:11.5px;font-weight:800;cursor:pointer;}
   .cadence-summary-grid{display:grid;grid-template-columns:1fr;gap:12px;}
-  .cadence-summary-card{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden;}
+  .cadence-summary-card{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden;cursor:pointer;transition:border-color .15s,background .15s;}
+  .cadence-summary-card:hover{border-color:var(--accent);background:var(--surface-hover);}
+  .cadence-summary-card.is-open{border-color:var(--accent);}
+
   .cadence-summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;}
   .cadence-summary-title{font-size:14px;font-weight:900;}
   .cadence-summary-meta{font-size:11px;color:var(--muted);font-weight:700;}
@@ -347,7 +357,9 @@
   .event-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
   .event-card:last-child{margin-bottom:0;}
   .event-card .row1{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
-  .event-card .tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#f3f4f6;}
+  .event-card .tag{font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#303744;color:#f8fafc;border:1px solid #4b5563;}
+  body.light-mode .event-card .tag{background:#374151;color:#fff;border-color:#4b5563;}
+  .event-card .badge{font-weight:900;border:1px solid currentColor;}
   .event-card .cat-label{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--muted);}
   .event-card .cat-label .dot{width:8px;height:8px;border-radius:50%;}
   .event-card .title{font-size:14.5px;font-weight:800;margin:2px 0 6px;}
@@ -934,6 +946,40 @@
     var startWeekday = firstDay.getDay();
     var daysInMonth = new Date(y, m+1, 0).getDate();
     var totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+    var gridStart = new Date(y, m, 1 - startWeekday);
+    var gridEnd = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + totalCells - 1);
+
+    /* 시작일~종료일이 2일 이상인 일정은 하루씩 반복하지 않고 주 단위 연속 막대로 표시 */
+    var rangedEvents = filtered.filter(function(ev){
+      return ev.start && ev.end && ymd(ev.start) !== ymd(ev.end) && ev.end >= gridStart && ev.start <= gridEnd;
+    });
+
+    var weekSegments = {};
+    rangedEvents.forEach(function(ev){
+      var clippedStart = ev.start < gridStart ? gridStart : ev.start;
+      var clippedEnd = ev.end > gridEnd ? gridEnd : ev.end;
+      var cursor = startOfDay(clippedStart);
+      while(cursor <= clippedEnd){
+        var cellIndex = Math.round((cursor - gridStart) / 86400000);
+        var weekIndex = Math.floor(cellIndex / 7);
+        var weekEnd = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + weekIndex*7 + 6);
+        var segEnd = clippedEnd < weekEnd ? clippedEnd : weekEnd;
+        var span = Math.round((startOfDay(segEnd) - cursor) / 86400000) + 1;
+        (weekSegments[weekIndex] = weekSegments[weekIndex] || []).push({
+          ev:ev,
+          startIndex:cellIndex,
+          span:span
+        });
+        cursor = new Date(segEnd.getFullYear(), segEnd.getMonth(), segEnd.getDate()+1);
+      }
+    });
+
+    Object.keys(weekSegments).forEach(function(k){
+      weekSegments[k].sort(function(a,b){
+        return a.startIndex-b.startIndex || b.span-a.span || a.ev.title.localeCompare(b.ev.title,'ko');
+      });
+      weekSegments[k].forEach(function(seg,lane){ seg.lane=lane; });
+    });
 
     var grid = document.getElementById('calGrid');
     grid.innerHTML = '';
@@ -942,6 +988,8 @@
       var dayNum = i - startWeekday + 1;
       var cellDate = new Date(y, m, dayNum);
       var otherMonth = (dayNum < 1 || dayNum > daysInMonth);
+      var weekIndex = Math.floor(i/7);
+      var weekBars = (weekSegments[weekIndex] || []).length;
 
       var cell = document.createElement('div');
       var classes = ['day-cell'];
@@ -956,9 +1004,27 @@
       dnum.textContent = cellDate.getDate();
       cell.appendChild(dnum);
 
-      var dayEvents = eventsOnDate(filtered, cellDate);
+      /* 이 셀에서 시작하는 주간 연속 막대만 생성 */
+      (weekSegments[weekIndex] || []).forEach(function(seg){
+        if(seg.startIndex !== i) return;
+        var bar = document.createElement('div');
+        bar.className = 'calendar-span-bar';
+        bar.style.top = (34 + seg.lane * 22) + 'px';
+        bar.style.width = 'calc(' + (seg.span * 100) + '% - 12px)';
+        bar.style.background = seg.ev.catMeta.color;
+        var prefix = seg.ev.overall ? '' : (state.selectedProduct === 'ALL' ? '['+seg.ev.product+'] ' : '');
+        bar.textContent = prefix + seg.ev.title;
+        bar.title = fmtRange(seg.ev) + ' · ' + prefix + seg.ev.title;
+        bar.onclick = function(e){ e.stopPropagation(); openItemModal(seg.ev); };
+        cell.appendChild(bar);
+      });
+
+      var dayEvents = eventsOnDate(filtered, cellDate).filter(function(ev){
+        return !(ev.start && ev.end && ymd(ev.start) !== ymd(ev.end));
+      });
       var chipsBox = document.createElement('div');
       chipsBox.className = 'chips';
+      chipsBox.style.marginTop = (4 + weekBars * 22) + 'px';
       var maxShow = 3;
       dayEvents.slice(0, maxShow).forEach(function(ev){
         chipsBox.appendChild(buildChip(ev));
@@ -1114,7 +1180,7 @@
         var id='cadenceDetail_'+idx;
         var isOnce=c==='일회성';
         var handled=items.filter(isHandled).length,pct=items.length?Math.round(handled/items.length*100):0;
-        html+='<div class="cadence-summary-card"><div class="cadence-summary-head"><span class="cadence-summary-title">'+cadenceDisplay[c]+'</span><span class="cadence-summary-meta">'+items.length+'개 항목</span></div>';
+        html+='<div class="cadence-summary-card" data-target="'+id+'"><div class="cadence-summary-head"><span class="cadence-summary-title">'+cadenceDisplay[c]+'</span><span class="cadence-summary-meta">'+items.length+'개 항목</span></div>';
         if(isOnce){
           html+='<div class="cadence-once-progress"><div class="cadence-once-value">'+pct+'%</div><div class="cadence-once-sub">처리 '+handled+'/'+items.length+' · 완료 + 해당없음 기준</div><div class="cat-metric-bar"><div class="cat-metric-bar-fill" style="width:'+pct+'%;background:var(--accent)"></div></div></div>';
         }else{
@@ -1157,7 +1223,7 @@
       btn.classList.toggle('active',btn.getAttribute('data-view')===state.productDetailView);
       btn.onclick=function(){state.productDetailView=btn.getAttribute('data-view');renderProductDetail();};
     });
-    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cat-detail-toggle, #pdBody .cadence-list-toggle'),function(btn){
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cat-detail-toggle'),function(btn){
       btn.onclick=function(){
         var target=document.getElementById(btn.getAttribute('data-target'));
         if(!target) return;
@@ -1166,7 +1232,35 @@
         btn.textContent=willOpen?'리스트 접기 ▴':'리스트 상세보기 ▾';
       };
     });
-    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .chk-row'),function(row){row.onclick=function(){var id=+row.getAttribute('data-eid'),ev=state.events[id];if(ev)openItemModal(ev);};});
+
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cadence-summary-card'),function(card){
+      card.onclick=function(e){
+        if(e.target.closest && e.target.closest('.chk-row')) return;
+        var target=document.getElementById(card.getAttribute('data-target'));
+        if(!target || card.querySelector('.cadence-list-toggle[disabled]')) return;
+        var willOpen=target.hidden;
+        target.hidden=!willOpen;
+        card.classList.toggle('is-open',willOpen);
+        var btn=card.querySelector('.cadence-list-toggle');
+        if(btn) btn.textContent=willOpen?'리스트 접기 ▴':'리스트 상세보기 ▾';
+      };
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cadence-list-toggle'),function(btn){
+      btn.onclick=function(e){
+        e.stopPropagation();
+        var card=btn.closest('.cadence-summary-card');
+        if(card) card.click();
+      };
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .chk-row'),function(row){
+      row.onclick=function(e){
+        e.stopPropagation();
+        var id=+row.getAttribute('data-eid'),ev=state.events[id];
+        if(ev)openItemModal(ev);
+      };
+    });
   }
 
   function openDayModal(date){
