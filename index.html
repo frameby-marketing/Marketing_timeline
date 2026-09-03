@@ -276,6 +276,26 @@
   .badge.na{background:#faf5ff;color:#7e22ce;}
   .pd-empty{font-size:13px;color:var(--muted);padding:10px 2px;}
 
+  /* ---------- Compact category summary cards ---------- */
+  .cat-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  .cat-summary-card{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden;}
+  .cat-summary-head{display:flex;align-items:center;gap:8px;padding:14px 14px 10px;}
+  .cat-summary-head .dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .cat-summary-title{font-size:14px;font-weight:800;}
+  .cat-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 14px 13px;}
+  .cat-metric{background:var(--surface-soft);border:1px solid var(--border);border-radius:9px;padding:9px 10px;min-width:0;}
+  .cat-metric-label{font-size:10.5px;color:var(--muted);font-weight:800;margin-bottom:4px;}
+  .cat-metric-value{font-size:18px;font-weight:900;line-height:1.1;}
+  .cat-metric-count{font-size:10.5px;color:var(--muted);font-weight:700;margin-top:3px;}
+  .cat-metric-bar{height:5px;background:var(--bar-bg);border-radius:4px;overflow:hidden;margin-top:7px;}
+  .cat-metric-bar-fill{height:100%;border-radius:4px;}
+  .cat-detail-toggle{width:100%;border:0;border-top:1px solid var(--border);background:transparent;color:var(--accent);font:inherit;font-size:12px;font-weight:800;padding:10px 12px;cursor:pointer;}
+  .cat-detail-toggle:hover{background:var(--surface-hover);}
+  .cat-detail-wrap{padding:0 14px 14px;}
+  .cat-detail-wrap[hidden]{display:none!important;}
+  .cat-detail-wrap .chk-cadence{margin-left:0;}
+  @media(max-width:760px){.cat-summary-grid{grid-template-columns:1fr}.cat-metrics{grid-template-columns:repeat(3,minmax(0,1fr));}}
+
   /* ---------- Modal ---------- */
   .modal-overlay{
     position:fixed;inset:0;background:rgba(15,17,26,.45);display:flex;align-items:center;
@@ -923,27 +943,70 @@
 
     function sortItems(list){return list.slice().sort(function(a,b){var ad=a.start?a.start.getTime():Number.MAX_SAFE_INTEGER,bd=b.start?b.start.getTime():Number.MAX_SAFE_INTEGER;return ad-bd||a.title.localeCompare(b.title,'ko');});}
     function cadenceLabel(c){var s=(c||'').trim();return s||'구분 미지정';}
-    function groupHtml(list){
-      if(!list.length) return '';
-      var byCat={}; list.forEach(function(ev){(byCat[ev.catMeta.key]=byCat[ev.catMeta.key]||[]).push(ev);});
-      var cadenceOrder=['일회성','일별','주차별','월별','필요시'], html='<div class="chk-block">';
-      CAT_ORDER.forEach(function(key){
-        if(!byCat[key]) return;
-        var catItems=byCat[key],catHandled=catItems.filter(function(e){return isOneTime(e)&&isHandled(e);}).length,catOneTime=catItems.filter(isOneTime).length;
-        html+='<div class="chk-group"><div class="chk-group-head"><span class="dot" style="background:'+CAT_COLOR[key]+'"></span><span class="chk-group-title">'+escapeHtml(catItems[0].catMeta.label||CAT_LABEL[key])+'</span>'+(catOneTime?'<span class="chk-group-count">일회성 '+catHandled+'/'+catOneTime+'</span>':'')+'</div>';
-        var byCadence={}; catItems.forEach(function(ev){var c=cadenceLabel(ev.cadence);(byCadence[c]=byCadence[c]||[]).push(ev);});
-        Object.keys(byCadence).sort(function(a,b){var ai=cadenceOrder.indexOf(a),bi=cadenceOrder.indexOf(b);if(ai===-1)ai=999;if(bi===-1)bi=999;return ai-bi||a.localeCompare(b,'ko');}).forEach(function(c){
-          var items=sortItems(byCadence[c]), gd=items.filter(isHandled).length, gpct=Math.round(gd/items.length*100);
-          html+='<div class="chk-cadence"><div class="chk-cadence-head"><span class="chk-cadence-title">'+escapeHtml(c)+'</span><span class="chk-group-count">'+gd+'/'+items.length+'</span><div class="chk-group-bar"><div class="chk-group-bar-fill" style="width:'+gpct+'%;background:'+CAT_COLOR[key]+'"></div></div></div><div class="chk-group-rows">';
-          items.forEach(function(ev){html+=chkRowHtml(ev);}); html+='</div></div>';
-        });
-        html+='</div>';
+    function cadenceMetric(catItems, cadence){
+      var items=catItems.filter(function(ev){return cadenceLabel(ev.cadence)===cadence;});
+      var done=items.filter(isHandled).length;
+      var pct=items.length?Math.round(done/items.length*100):0;
+      return {items:items,done:done,total:items.length,pct:pct};
+    }
+    function detailRows(catItems,key){
+      var cadenceOrder=['일회성','일별','주차별','월별','필요시'],byCadence={},html='';
+      catItems.forEach(function(ev){var c=cadenceLabel(ev.cadence);(byCadence[c]=byCadence[c]||[]).push(ev);});
+      Object.keys(byCadence).sort(function(a,b){var ai=cadenceOrder.indexOf(a),bi=cadenceOrder.indexOf(b);if(ai===-1)ai=999;if(bi===-1)bi=999;return ai-bi||a.localeCompare(b,'ko');}).forEach(function(c){
+        var items=sortItems(byCadence[c]),gd=items.filter(isHandled).length,gpct=items.length?Math.round(gd/items.length*100):0;
+        html+='<div class="chk-cadence"><div class="chk-cadence-head"><span class="chk-cadence-title">'+escapeHtml(c)+'</span><span class="chk-group-count">'+gd+'/'+items.length+'</span><div class="chk-group-bar"><div class="chk-group-bar-fill" style="width:'+gpct+'%;background:'+CAT_COLOR[key]+'"></div></div></div><div class="chk-group-rows">';
+        items.forEach(function(ev){html+=chkRowHtml(ev);});
+        html+='</div></div>';
+      });
+      return html;
+    }
+    function productCategoryCards(list){
+      var wanted=[
+        {key:'brand',label:'기초 설계'},
+        {key:'growth',label:'광고 운영'},
+        {key:'retention',label:'리텐션·사후관리'},
+        {key:'etc',label:'스토어 관리'}
+      ];
+      var html='<div class="cat-summary-grid">';
+      wanted.forEach(function(cfg,idx){
+        var catItems=list.filter(function(ev){return (ev.catMeta.label||'').trim()===cfg.label;});
+        if(!catItems.length) catItems=list.filter(function(ev){return ev.catMeta.key===cfg.key;});
+        var once=cadenceMetric(catItems,'일회성'), weekly=cadenceMetric(catItems,'주차별'), monthly=cadenceMetric(catItems,'월별');
+        var cardId='catDetail_'+idx;
+        function metricHtml(label,m){
+          return '<div class="cat-metric"><div class="cat-metric-label">'+label+'</div><div class="cat-metric-value">'+m.pct+'%</div><div class="cat-metric-count">'+m.done+'/'+m.total+'</div><div class="cat-metric-bar"><div class="cat-metric-bar-fill" style="width:'+m.pct+'%;background:'+CAT_COLOR[cfg.key]+'"></div></div></div>';
+        }
+        html+='<div class="cat-summary-card"><div class="cat-summary-head"><span class="dot" style="background:'+CAT_COLOR[cfg.key]+'"></span><span class="cat-summary-title">'+cfg.label+'</span></div><div class="cat-metrics">'+metricHtml('일회성',once)+metricHtml('주차별',weekly)+metricHtml('월별',monthly)+'</div><button class="cat-detail-toggle" type="button" data-target="'+cardId+'">리스트 상세보기 ▾</button><div class="cat-detail-wrap" id="'+cardId+'" hidden>'+detailRows(catItems,cfg.key)+'</div></div>';
       });
       return html+'</div>';
     }
-    var body=groupHtml(all);
+
+    var body;
+    if(p==='종합'){
+      /* 종합 시트는 기존 방식으로 모든 카테고리를 펼쳐 표시 */
+      var byCat={}; all.forEach(function(ev){(byCat[ev.catMeta.key]=byCat[ev.catMeta.key]||[]).push(ev);});
+      body='<div class="chk-block">';
+      CAT_ORDER.forEach(function(key){
+        if(!byCat[key]) return;
+        var items=byCat[key];
+        body+='<div class="chk-group"><div class="chk-group-head"><span class="dot" style="background:'+CAT_COLOR[key]+'"></span><span class="chk-group-title">'+escapeHtml(items[0].catMeta.label||CAT_LABEL[key])+'</span></div>'+detailRows(items,key)+'</div>';
+      });
+      body+='</div>';
+    }else{
+      body=productCategoryCards(all);
+    }
     if(!all.length) body='<div class="pd-empty">이 시트에 등록된 체크리스트 항목이 없습니다.</div>';
     document.getElementById('pdBody').innerHTML=body;
+
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cat-detail-toggle'),function(btn){
+      btn.onclick=function(){
+        var target=document.getElementById(btn.getAttribute('data-target'));
+        if(!target) return;
+        var willOpen=target.hidden;
+        target.hidden=!willOpen;
+        btn.textContent=willOpen?'리스트 접기 ▴':'리스트 상세보기 ▾';
+      };
+    });
     Array.prototype.forEach.call(document.querySelectorAll('#pdBody .chk-row'),function(row){row.onclick=function(){var id=+row.getAttribute('data-eid'),ev=state.events[id];if(ev)openItemModal(ev);};});
   }
 
