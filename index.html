@@ -253,11 +253,11 @@
   .chk-row.status-done{border-color:#3b82f6;background:rgba(59,130,246,.09);}
   .chk-row.status-progress{border-color:#22c55e;background:rgba(34,197,94,.09);}
   .chk-row.status-review{border-color:#f97316;background:rgba(249,115,22,.10);}
-  .chk-row.status-na{border-color:#d1d5db;background:#f3f4f6;cursor:default;}
+  .chk-row.status-na{border-color:#4b5563;background:#272c35;cursor:default;}
   .chk-row.status-done:hover{background:rgba(59,130,246,.14);}
   .chk-row.status-progress:hover{background:rgba(34,197,94,.14);}
   .chk-row.status-review:hover{background:rgba(249,115,22,.15);}
-  .chk-row.status-na:hover{background:#f3f4f6;}
+  .chk-row.status-na:hover{background:#272c35;}
   .chk-row:hover{background:var(--surface-hover);}
   .chk-icon{
     flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -270,8 +270,8 @@
   .chk-main{flex:1;min-width:0;}
   .chk-title{font-size:13.3px;font-weight:700;}
   .chk-row.status-done .chk-title{color:var(--text);text-decoration:line-through;}
-  .chk-row.status-na .chk-title{color:#9ca3af;text-decoration:none;}
-  .chk-row.status-na .chk-meta{color:#9ca3af;}
+  .chk-row.status-na .chk-title{color:#8b94a3;text-decoration:none;}
+  .chk-row.status-na .chk-meta{color:#727b89;}
   .chk-meta{font-size:11.3px;color:var(--muted);margin-top:1px;font-weight:600;}
   .chk-overdue{color:#dc2626;font-weight:800;}
 
@@ -282,7 +282,12 @@
   .badge.notstarted{background:#f3f4f6;color:#6b7280;}
   .badge.done{background:#dbeafe;color:#1d4ed8;}
   .badge.review{background:#ffedd5;color:#c2410c;}
-  .badge.na{background:#e5e7eb;color:#6b7280;}
+  .badge.na{background:#3a404b;color:#aab2bf;}
+  body.light-mode .chk-row.status-na{border-color:#9ca3af;background:#d1d5db;}
+  body.light-mode .chk-row.status-na:hover{background:#d1d5db;}
+  body.light-mode .chk-row.status-na .chk-title{color:#6b7280;}
+  body.light-mode .chk-row.status-na .chk-meta{color:#7b8491;}
+  body.light-mode .badge.na{background:#9ca3af;color:#f9fafb;}
   .pd-empty{font-size:13px;color:var(--muted);padding:10px 2px;}
 
   /* ---------- Compact category summary cards ---------- */
@@ -446,7 +451,7 @@
       <label class="pd-sort-wrap" id="pdSortWrap">상태 정렬
         <select class="pd-sort-select" id="pdStatusSort">
           <option value="default">기본 순서</option>
-          <option value="statusDesc">상태 내림차순</option>
+          <option value="statusDesc" selected>상태 내림차순</option>
         </select>
       </label>
     </div>
@@ -541,7 +546,7 @@
     viewMonth: today.getMonth(),
     selectedProduct: 'ALL',
     productDetailView: 'cadence',
-    productDetailSort: 'default',
+    productDetailSort: 'statusDesc',
     hiddenCats: {}
   };
 
@@ -568,10 +573,21 @@
     if(!str) return null;
     str = String(str).trim();
     if(!str) return null;
+
     var m = str.match(/^(\d{4})[.\-\/](\s*\d{1,2})[.\-\/](\s*\d{1,2})/);
     if(m){ return new Date(+m[1], (+m[2])-1, +m[3]); }
+
     m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if(m){ return new Date(+m[3], (+m[1])-1, +m[2]); }
+
+    /* Google Sheets 한국어 표시 형식: 2026년 9월 8일 / 26년 9월 8일 목요일 */
+    m = str.match(/^(\d{2,4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+    if(m){
+      var y = +m[1];
+      if(y < 100) y += 2000;
+      return new Date(y, (+m[2])-1, +m[3]);
+    }
+
     var d = new Date(str);
     if(!isNaN(d.getTime())) return startOfDay(d);
     return null;
