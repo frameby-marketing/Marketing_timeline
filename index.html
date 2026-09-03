@@ -763,6 +763,26 @@
     });
   }
 
+  function applySelectedProduct(product, pushHistory){
+    var next = product || 'ALL';
+    state.selectedProduct = next;
+    state.hiddenCats = {};
+    var sel = document.getElementById('productSelect');
+    if(sel) sel.value = next === 'ALL' ? '' : next;
+    var allBtn = document.getElementById('allViewBtn');
+    if(allBtn) allBtn.classList.toggle('active', next === 'ALL');
+
+    if(pushHistory){
+      try{ history.pushState({marketingProduct: next}, '', location.href); }catch(e){}
+    }
+
+    renderLegend();
+    renderCalendar();
+    renderSummary();
+    renderProductDetail();
+    renderProductOverview();
+  }
+
   function renderProductOptions(){
     var sel=document.getElementById('productSelect'), products=[];
     (CONFIG.PRODUCTS||[]).forEach(function(p){ if(p&&p.name&&products.indexOf(p.name)===-1) products.push(p.name); });
@@ -773,16 +793,28 @@
     if(current!=='ALL'&&products.indexOf(current)===-1) current='ALL';
     state.selectedProduct=current; sel.value=current==='ALL'?'':current;
     document.getElementById('allViewBtn').classList.toggle('active',current==='ALL');
-    sel.onchange=function(){ if(!sel.value) return; state.selectedProduct=sel.value; state.hiddenCats={}; document.getElementById('allViewBtn').classList.remove('active'); renderLegend(); renderCalendar(); renderSummary(); renderProductDetail(); renderProductOverview(); };
+    sel.onchange=function(){ if(!sel.value) return; applySelectedProduct(sel.value, true); };
   }
 
   function monthRange(y,m){
     return { start: new Date(y,m,1), end: new Date(y,m+1,0) };
   }
 
+  function normalizeCadenceValue(value){
+    var s = String(value == null ? '' : value)
+      .replace(/[\u00A0\u200B-\u200D\uFEFF]/g,'')
+      .replace(/\s+/g,'')
+      .trim();
+    if(/^(일회성|1회성|일회|1회|once)$/i.test(s)) return '일회성';
+    if(/^(일별|매일|daily)$/i.test(s)) return '일별';
+    if(/^(주별|주차별|매주|weekly)$/i.test(s)) return '주차별';
+    if(/^(월별|매월|monthly)$/i.test(s)) return '월별';
+    if(/^(필요시|필요할때|필요할때마다)$/i.test(s)) return '필요시';
+    return s || '구분 미지정';
+  }
+
   function isOneTime(ev){
-    var c = (ev.cadence || '').replace(/\s/g,'');
-    return /^(일회성|1회성|일회|once)$/i.test(c);
+    return normalizeCadenceValue(ev && ev.cadence) === '일회성';
   }
 
   function renderSummary(){
@@ -846,10 +878,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('.ov-row'), function(row){
       row.onclick = function(){
         var p = row.getAttribute('data-product');
-        state.selectedProduct = p;
-        document.getElementById('productSelect').value = p;
-        document.getElementById('allViewBtn').classList.remove('active');
-        renderCalendar(); renderSummary(); renderProductDetail(); renderProductOverview();
+        applySelectedProduct(p, true);
       };
     });
   }
@@ -1004,14 +1033,7 @@
       });
     }
     function cadenceLabel(c){
-      var s=String(c==null?'':c).replace(/[\u00A0\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,'').trim();
-      if(!s) return '구분 미지정';
-      if(/^(일회성|1회성|일회|1회|once)$/i.test(s)) return '일회성';
-      if(/^(일별|매일|daily)$/i.test(s)) return '일별';
-      if(/^(주별|주차별|매주|weekly)$/i.test(s)) return '주차별';
-      if(/^(월별|매월|monthly)$/i.test(s)) return '월별';
-      if(/^(필요시|필요할때|필요할때마다)$/i.test(s)) return '필요시';
-      return s;
+      return normalizeCadenceValue(c);
     }
     function cadenceMetric(catItems, cadence){
       var items=catItems.filter(function(ev){return cadenceLabel(ev.cadence)===cadence;});
@@ -1059,7 +1081,7 @@
       var cadenceDisplay={'일회성':'일회성','일별':'일별','주차별':'주별','월별':'월별','필요시':'필요시'};
       var html='<div class="cadence-summary-grid">';
       cadenceOrder.forEach(function(c,idx){
-        var items=sortItems(list.filter(function(ev){return cadenceLabel(ev.cadence)===c;}));
+        var items=sortItems(list.filter(function(ev){return c==='일회성'?isOneTime(ev):cadenceLabel(ev.cadence)===c;}));
         var id='cadenceDetail_'+idx;
         var isOnce=c==='일회성';
         var handled=items.filter(isHandled).length,pct=items.length?Math.round(handled/items.length*100):0;
@@ -1256,11 +1278,7 @@
      7. 툴바 이벤트
   ===================================================== */
   document.getElementById('allViewBtn').onclick = function(){
-    state.selectedProduct = 'ALL';
-    state.hiddenCats = {};
-    document.getElementById('productSelect').value = '';
-    this.classList.add('active');
-    renderLegend(); renderCalendar(); renderSummary(); renderProductDetail(); renderProductOverview();
+    applySelectedProduct('ALL', true);
   };
 
   document.getElementById('prevMonth').onclick = function(){
@@ -1278,8 +1296,19 @@
   document.getElementById('refreshBtn').onclick = function(){ refreshData(); };
 
   /* =====================================================
-     8. 초기 실행 + 자동 새로고침
+     8. 초기 실행 + 브라우저 뒤로가기 + 자동 새로고침
   ===================================================== */
+  try{
+    if(!history.state || !history.state.marketingProduct){
+      history.replaceState({marketingProduct:'ALL'}, '', location.href);
+    }
+  }catch(e){}
+
+  window.addEventListener('popstate', function(e){
+    var product = (e.state && e.state.marketingProduct) ? e.state.marketingProduct : 'ALL';
+    applySelectedProduct(product, false);
+  });
+
   refreshData();
   setInterval(function(){ refreshData({silent:true}); }, CONFIG.AUTO_REFRESH_MINUTES * 60000);
   document.addEventListener('visibilitychange', function(){
