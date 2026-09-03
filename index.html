@@ -250,18 +250,24 @@
     border-radius:10px;margin-bottom:6px;cursor:pointer;background:var(--card);
   }
   .chk-row:last-child{margin-bottom:0;}
+  .chk-row.status-done{border-color:#3b82f6;background:rgba(59,130,246,.09);}
+  .chk-row.status-progress{border-color:#22c55e;background:rgba(34,197,94,.09);}
+  .chk-row.status-review{border-color:#f97316;background:rgba(249,115,22,.10);}
+  .chk-row.status-done:hover{background:rgba(59,130,246,.14);}
+  .chk-row.status-progress:hover{background:rgba(34,197,94,.14);}
+  .chk-row.status-review:hover{background:rgba(249,115,22,.15);}
   .chk-row:hover{background:var(--surface-hover);}
   .chk-icon{
     flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-size:13px;font-weight:800;background:#f3f4f6;color:#9ca3af;
   }
-  .chk-icon.progress{background:#eef2ff;color:#4338ca;}
-  .chk-icon.done{background:#dcfce7;color:#15803d;}
-  .chk-icon.review{background:#fee2e2;color:#b91c1c;}
+  .chk-icon.progress{background:#dcfce7;color:#15803d;}
+  .chk-icon.done{background:#dbeafe;color:#1d4ed8;}
+  .chk-icon.review{background:#ffedd5;color:#c2410c;}
   .chk-icon.na{background:#f3e8ff;color:#7e22ce;}
   .chk-main{flex:1;min-width:0;}
   .chk-title{font-size:13.3px;font-weight:700;}
-  .chk-row.status-done .chk-title,
+  .chk-row.status-done .chk-title{color:var(--text);text-decoration:line-through;}
   .chk-row.status-na .chk-title{color:var(--muted);text-decoration:line-through;}
   .chk-meta{font-size:11.3px;color:var(--muted);margin-top:1px;font-weight:600;}
   .chk-overdue{color:#dc2626;font-weight:800;}
@@ -269,10 +275,10 @@
   .badge{
     font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap;flex:none;
   }
-  .badge.progress{background:#eef2ff;color:#4338ca;}
+  .badge.progress{background:#dcfce7;color:#15803d;}
   .badge.notstarted{background:#f3f4f6;color:#6b7280;}
-  .badge.done{background:#f0fdf4;color:#15803d;}
-  .badge.review{background:#fef2f2;color:#b91c1c;}
+  .badge.done{background:#dbeafe;color:#1d4ed8;}
+  .badge.review{background:#ffedd5;color:#c2410c;}
   .badge.na{background:#faf5ff;color:#7e22ce;}
   .pd-empty{font-size:13px;color:var(--muted);padding:10px 2px;}
 
@@ -292,7 +298,10 @@
   .pd-view-switch{display:flex;gap:7px;margin:14px 0 12px;padding:4px;background:var(--surface-soft);border:1px solid var(--border);border-radius:10px;width:max-content;max-width:100%;}
   .pd-view-btn{border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:800;padding:7px 12px;border-radius:7px;cursor:pointer;}
   .pd-view-btn.active{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
-  .cadence-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+  .pd-detail-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .pd-sort-wrap{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);font-weight:800;}
+  .pd-sort-select{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:8px;padding:7px 30px 7px 10px;font:inherit;font-size:11.5px;font-weight:800;cursor:pointer;}
+  .cadence-summary-grid{display:grid;grid-template-columns:1fr;gap:12px;}
   .cadence-summary-card{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden;}
   .cadence-summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;}
   .cadence-summary-title{font-size:14px;font-weight:900;}
@@ -426,9 +435,17 @@
       </div>
       <div class="chk-overall-bar"><div class="chk-overall-bar-fill" id="pdOverallBarFill" style="width:0%"></div></div>
     </div>
-    <div class="pd-view-switch" id="pdViewSwitch">
-      <button type="button" class="pd-view-btn active" data-view="category">카테고리 기준</button>
-      <button type="button" class="pd-view-btn" data-view="cadence">구분 기준</button>
+    <div class="pd-detail-controls" id="pdDetailControls">
+      <div class="pd-view-switch" id="pdViewSwitch">
+        <button type="button" class="pd-view-btn" data-view="category">카테고리 기준</button>
+        <button type="button" class="pd-view-btn active" data-view="cadence">구분 기준</button>
+      </div>
+      <label class="pd-sort-wrap" id="pdSortWrap">상태 정렬
+        <select class="pd-sort-select" id="pdStatusSort">
+          <option value="default">기본 순서</option>
+          <option value="statusDesc">상태 내림차순</option>
+        </select>
+      </label>
     </div>
     <div id="pdBody"></div>
   </div>
@@ -520,7 +537,8 @@
     viewYear: today.getFullYear(),
     viewMonth: today.getMonth(),
     selectedProduct: 'ALL',
-    productDetailView: 'category',
+    productDetailView: 'cadence',
+    productDetailSort: 'default',
     hiddenCats: {}
   };
 
@@ -789,7 +807,16 @@
       if(ev.overall) return;
       (byProduct[ev.product] = byProduct[ev.product] || []).push(ev);
     });
-    var products = Object.keys(byProduct).sort(function(a,b){ return a.localeCompare(b, 'ko'); });
+    var products = Object.keys(byProduct).sort(function(a,b){
+      function oneTimePct(product){
+        var list = byProduct[product].filter(isOneTime);
+        if(!list.length) return -1;
+        return Math.round(list.filter(isHandled).length / list.length * 100);
+      }
+      var diff = oneTimePct(b) - oneTimePct(a);
+      if(diff !== 0) return diff;
+      return a.localeCompare(b, 'ko');
+    });
     if(products.length === 0){ section.hidden = true; return; }
     section.hidden = false;
     var rows = products.map(function(p){
@@ -961,7 +988,17 @@
     document.getElementById('pdOverallSub').textContent='일회성 기준 · 처리 '+handled+'/'+total+' (완료 '+completedOnly+(na?' · 해당없음 '+na:'')+') · 진행중 '+progress+' · 재점검 필요 '+review+' · 미착수 '+notstarted;
     document.getElementById('pdOverallBarFill').style.width=pct+'%';
 
-    function sortItems(list){return list.slice().sort(function(a,b){var ad=a.start?a.start.getTime():Number.MAX_SAFE_INTEGER,bd=b.start?b.start.getTime():Number.MAX_SAFE_INTEGER;return ad-bd||a.title.localeCompare(b.title,'ko');});}
+    function sortItems(list){
+      var statusRank={done:5,progress:4,review:3,notstarted:2,na:1};
+      return list.slice().sort(function(a,b){
+        if(state.productDetailSort==='statusDesc'){
+          var sr=(statusRank[b.statusKey]||0)-(statusRank[a.statusKey]||0);
+          if(sr) return sr;
+        }
+        var ad=a.start?a.start.getTime():Number.MAX_SAFE_INTEGER,bd=b.start?b.start.getTime():Number.MAX_SAFE_INTEGER;
+        return ad-bd||a.title.localeCompare(b.title,'ko');
+      });
+    }
     function cadenceLabel(c){var s=(c||'').trim();return s||'구분 미지정';}
     function cadenceMetric(catItems, cadence){
       var items=catItems.filter(function(ev){return cadenceLabel(ev.cadence)===cadence;});
@@ -1044,7 +1081,14 @@
     document.getElementById('pdBody').innerHTML=body;
 
     var viewSwitch=document.getElementById('pdViewSwitch');
+    var sortWrap=document.getElementById('pdSortWrap');
     if(viewSwitch) viewSwitch.hidden=(p==='종합');
+    if(sortWrap) sortWrap.hidden=(p==='종합');
+    var statusSort=document.getElementById('pdStatusSort');
+    if(statusSort){
+      statusSort.value=state.productDetailSort;
+      statusSort.onchange=function(){state.productDetailSort=statusSort.value;renderProductDetail();};
+    }
     Array.prototype.forEach.call(document.querySelectorAll('#pdViewSwitch .pd-view-btn'),function(btn){
       btn.classList.toggle('active',btn.getAttribute('data-view')===state.productDetailView);
       btn.onclick=function(){state.productDetailView=btn.getAttribute('data-view');renderProductDetail();};
