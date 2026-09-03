@@ -289,12 +289,27 @@
   .cat-metric-count{font-size:10.5px;color:var(--muted);font-weight:700;margin-top:3px;}
   .cat-metric-bar{height:5px;background:var(--bar-bg);border-radius:4px;overflow:hidden;margin-top:7px;}
   .cat-metric-bar-fill{height:100%;border-radius:4px;}
+  .pd-view-switch{display:flex;gap:7px;margin:14px 0 12px;padding:4px;background:var(--surface-soft);border:1px solid var(--border);border-radius:10px;width:max-content;max-width:100%;}
+  .pd-view-btn{border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:800;padding:7px 12px;border-radius:7px;cursor:pointer;}
+  .pd-view-btn.active{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .cadence-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+  .cadence-summary-card{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden;}
+  .cadence-summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;}
+  .cadence-summary-title{font-size:14px;font-weight:900;}
+  .cadence-summary-meta{font-size:11px;color:var(--muted);font-weight:700;}
+  .cadence-once-progress{padding:0 14px 13px;}
+  .cadence-once-value{font-size:22px;font-weight:900;}
+  .cadence-once-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  .cadence-list-toggle{width:100%;border:0;border-top:1px solid var(--border);background:transparent;color:var(--text);padding:10px 14px;font-size:11px;font-weight:800;cursor:pointer;text-align:left;}
+  .cadence-list-wrap{border-top:1px solid var(--border);}
+  .cat-metric.recurring .cat-metric-value{font-size:15px;}
+  .cat-metric.recurring .cat-metric-count{font-size:11px;margin-top:5px;}
   .cat-detail-toggle{width:100%;border:0;border-top:1px solid var(--border);background:transparent;color:var(--accent);font:inherit;font-size:12px;font-weight:800;padding:10px 12px;cursor:pointer;}
   .cat-detail-toggle:hover{background:var(--surface-hover);}
   .cat-detail-wrap{padding:0 14px 14px;}
   .cat-detail-wrap[hidden]{display:none!important;}
   .cat-detail-wrap .chk-cadence{margin-left:0;}
-  @media(max-width:760px){.cat-summary-grid{grid-template-columns:1fr}.cat-metrics{grid-template-columns:repeat(3,minmax(0,1fr));}}
+  @media(max-width:760px){.cat-summary-grid,.cadence-summary-grid{grid-template-columns:1fr}.cat-metrics{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
   /* ---------- Modal ---------- */
   .modal-overlay{
@@ -411,6 +426,10 @@
       </div>
       <div class="chk-overall-bar"><div class="chk-overall-bar-fill" id="pdOverallBarFill" style="width:0%"></div></div>
     </div>
+    <div class="pd-view-switch" id="pdViewSwitch">
+      <button type="button" class="pd-view-btn active" data-view="category">카테고리 기준</button>
+      <button type="button" class="pd-view-btn" data-view="cadence">구분 기준</button>
+    </div>
     <div id="pdBody"></div>
   </div>
 
@@ -501,6 +520,7 @@
     viewYear: today.getFullYear(),
     viewMonth: today.getMonth(),
     selectedProduct: 'ALL',
+    productDetailView: 'category',
     hiddenCats: {}
   };
 
@@ -953,8 +973,9 @@
       var cadenceOrder=['일회성','일별','주차별','월별','필요시'],byCadence={},html='';
       catItems.forEach(function(ev){var c=cadenceLabel(ev.cadence);(byCadence[c]=byCadence[c]||[]).push(ev);});
       Object.keys(byCadence).sort(function(a,b){var ai=cadenceOrder.indexOf(a),bi=cadenceOrder.indexOf(b);if(ai===-1)ai=999;if(bi===-1)bi=999;return ai-bi||a.localeCompare(b,'ko');}).forEach(function(c){
-        var items=sortItems(byCadence[c]),gd=items.filter(isHandled).length,gpct=items.length?Math.round(gd/items.length*100):0;
-        html+='<div class="chk-cadence"><div class="chk-cadence-head"><span class="chk-cadence-title">'+escapeHtml(c)+'</span><span class="chk-group-count">'+gd+'/'+items.length+'</span><div class="chk-group-bar"><div class="chk-group-bar-fill" style="width:'+gpct+'%;background:'+CAT_COLOR[key]+'"></div></div></div><div class="chk-group-rows">';
+        var items=sortItems(byCadence[c]);
+        var isOnce=c==='일회성', gd=items.filter(isHandled).length,gpct=items.length?Math.round(gd/items.length*100):0;
+        html+='<div class="chk-cadence"><div class="chk-cadence-head"><span class="chk-cadence-title">'+escapeHtml(c)+'</span><span class="chk-group-count">'+(isOnce?(gd+'/'+items.length+' · '+gpct+'%'):(items.length+'개 항목'))+'</span>'+(isOnce?'<div class="chk-group-bar"><div class="chk-group-bar-fill" style="width:'+gpct+'%;background:'+CAT_COLOR[key]+'"></div></div>':'')+'</div><div class="chk-group-rows">';
         items.forEach(function(ev){html+=chkRowHtml(ev);});
         html+='</div></div>';
       });
@@ -965,7 +986,7 @@
         {key:'brand',label:'기초 설계'},
         {key:'growth',label:'광고 운영'},
         {key:'retention',label:'리텐션·사후관리'},
-        {key:'etc',label:'스토어 관리'}
+        {key:'store',label:'스토어 관리'}
       ];
       var html='<div class="cat-summary-grid">';
       wanted.forEach(function(cfg,idx){
@@ -973,10 +994,34 @@
         if(!catItems.length) catItems=list.filter(function(ev){return ev.catMeta.key===cfg.key;});
         var once=cadenceMetric(catItems,'일회성'), weekly=cadenceMetric(catItems,'주차별'), monthly=cadenceMetric(catItems,'월별');
         var cardId='catDetail_'+idx;
-        function metricHtml(label,m){
-          return '<div class="cat-metric"><div class="cat-metric-label">'+label+'</div><div class="cat-metric-value">'+m.pct+'%</div><div class="cat-metric-count">'+m.done+'/'+m.total+'</div><div class="cat-metric-bar"><div class="cat-metric-bar-fill" style="width:'+m.pct+'%;background:'+CAT_COLOR[cfg.key]+'"></div></div></div>';
+        function onceMetric(m){
+          return '<div class="cat-metric"><div class="cat-metric-label">일회성 진행률</div><div class="cat-metric-value">'+m.pct+'%</div><div class="cat-metric-count">'+m.done+'/'+m.total+'</div><div class="cat-metric-bar"><div class="cat-metric-bar-fill" style="width:'+m.pct+'%;background:'+CAT_COLOR[cfg.key]+'"></div></div></div>';
         }
-        html+='<div class="cat-summary-card"><div class="cat-summary-head"><span class="dot" style="background:'+CAT_COLOR[cfg.key]+'"></span><span class="cat-summary-title">'+cfg.label+'</span></div><div class="cat-metrics">'+metricHtml('일회성',once)+metricHtml('주차별',weekly)+metricHtml('월별',monthly)+'</div><button class="cat-detail-toggle" type="button" data-target="'+cardId+'">리스트 상세보기 ▾</button><div class="cat-detail-wrap" id="'+cardId+'" hidden>'+detailRows(catItems,cfg.key)+'</div></div>';
+        function recurringMetric(label,m){
+          return '<div class="cat-metric recurring"><div class="cat-metric-label">'+label+'</div><div class="cat-metric-value">운영 항목</div><div class="cat-metric-count">'+m.total+'개 · 지속 점검</div></div>';
+        }
+        html+='<div class="cat-summary-card"><div class="cat-summary-head"><span class="dot" style="background:'+CAT_COLOR[cfg.key]+'"></span><span class="cat-summary-title">'+cfg.label+'</span></div><div class="cat-metrics">'+onceMetric(once)+recurringMetric('주차별',weekly)+recurringMetric('월별',monthly)+'</div><button class="cat-detail-toggle" type="button" data-target="'+cardId+'">리스트 상세보기 ▾</button><div class="cat-detail-wrap" id="'+cardId+'" hidden>'+detailRows(catItems,cfg.key)+'</div></div>';
+      });
+      return html+'</div>';
+    }
+    function productCadenceCards(list){
+      var cadenceOrder=['일회성','일별','주차별','월별','필요시'];
+      var html='<div class="cadence-summary-grid">';
+      cadenceOrder.forEach(function(c,idx){
+        var items=sortItems(list.filter(function(ev){return cadenceLabel(ev.cadence)===c;}));
+        if(!items.length) return;
+        var id='cadenceDetail_'+idx;
+        var isOnce=c==='일회성';
+        var handled=items.filter(isHandled).length,pct=items.length?Math.round(handled/items.length*100):0;
+        html+='<div class="cadence-summary-card"><div class="cadence-summary-head"><span class="cadence-summary-title">'+c+'</span><span class="cadence-summary-meta">'+items.length+'개 항목</span></div>';
+        if(isOnce){
+          html+='<div class="cadence-once-progress"><div class="cadence-once-value">'+pct+'%</div><div class="cadence-once-sub">처리 '+handled+'/'+items.length+' · 완료 + 해당없음 기준</div><div class="cat-metric-bar"><div class="cat-metric-bar-fill" style="width:'+pct+'%;background:var(--accent)"></div></div></div>';
+        }else{
+          html+='<div class="cadence-once-progress"><div class="cadence-once-sub">반복 운영 항목 · 완료율을 계산하지 않습니다.</div></div>';
+        }
+        html+='<button class="cadence-list-toggle" type="button" data-target="'+id+'">리스트 상세보기 ▾</button><div class="cadence-list-wrap" id="'+id+'" hidden>';
+        items.forEach(function(ev){html+=chkRowHtml(ev);});
+        html+='</div></div>';
       });
       return html+'</div>';
     }
@@ -993,12 +1038,18 @@
       });
       body+='</div>';
     }else{
-      body=productCategoryCards(all);
+      body=state.productDetailView==='cadence'?productCadenceCards(all):productCategoryCards(all);
     }
     if(!all.length) body='<div class="pd-empty">이 시트에 등록된 체크리스트 항목이 없습니다.</div>';
     document.getElementById('pdBody').innerHTML=body;
 
-    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cat-detail-toggle'),function(btn){
+    var viewSwitch=document.getElementById('pdViewSwitch');
+    if(viewSwitch) viewSwitch.hidden=(p==='종합');
+    Array.prototype.forEach.call(document.querySelectorAll('#pdViewSwitch .pd-view-btn'),function(btn){
+      btn.classList.toggle('active',btn.getAttribute('data-view')===state.productDetailView);
+      btn.onclick=function(){state.productDetailView=btn.getAttribute('data-view');renderProductDetail();};
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cat-detail-toggle, #pdBody .cadence-list-toggle'),function(btn){
       btn.onclick=function(){
         var target=document.getElementById(btn.getAttribute('data-target'));
         if(!target) return;
