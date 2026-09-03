@@ -511,13 +511,13 @@
   var CONFIG = {
     SPREADSHEET_URL: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547",
     PRODUCTS: [
-      { name: "PH스탠드", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
-      { name: "킥프레임", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
-      { name: "맥세이프케이스", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
-      { name: "DW플러스", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
-      { name: "DW프로", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
-      { name: "프레임팁", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
-      { name: "종합", url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" }
+      { name: "PH스탠드", gid: 0, url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "킥프레임", gid: 1118608109, url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "맥세이프케이스", gid: 141778143, url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "DW플러스", gid: 325281406, url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "DW프로", gid: 1042819055, url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "프레임팁", gid: 1235434040, url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" },
+      { name: "종합", gid: 1300728531, url: "https://docs.google.com/spreadsheets/d/16csYoSt1I6YaDBw-aozssBJaMGFfb_NZZOXeV4sJka4/edit?ouid=116324877943507306547" }
     ],
     AUTO_REFRESH_MINUTES: 5
   };
@@ -673,29 +673,42 @@
     renderAll();
   }
 
-  function sheetCsvUrl(src){
+  function sheetCsvUrls(src){
     var url = (src.url || '').trim();
-    if(!url) return '';
-    if(/tqx=out:csv|output=csv|pub\?output=csv/i.test(url)) return url;
+    if(!url) return [];
+    if(/tqx=out:csv|output=csv|pub\?output=csv/i.test(url)) return [url];
     var m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-    if(!m) return url;
-    return 'https://docs.google.com/spreadsheets/d/' + m[1] + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(src.name);
+    if(!m) return [url];
+    var id = m[1];
+    var urls = [];
+    if(src.gid !== undefined && src.gid !== null && src.gid !== ''){
+      urls.push('https://docs.google.com/spreadsheets/d/' + id + '/export?format=csv&gid=' + encodeURIComponent(src.gid) + '&range=A1:H2000');
+    }
+    urls.push('https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:csv&headers=1&sheet=' + encodeURIComponent(src.name) + '&range=A1:H2000');
+    return urls;
+  }
+
+  function fetchCsvText(url){
+    return fetch(url, {cache:'no-store'}).then(function(res){
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    });
   }
 
   function fetchOneSheet(src){
-    return fetch(sheetCsvUrl(src), {cache:'no-store'})
-      .then(function(res){
-        if(!res.ok) throw new Error('HTTP ' + res.status);
-        return res.text();
-      })
-      .then(function(text){
+    var urls = sheetCsvUrls(src);
+    function attempt(i){
+      if(i >= urls.length) return Promise.reject(new Error('all csv endpoints failed'));
+      return fetchCsvText(urls[i]).then(function(text){
         var objs = csvTextToObjects(text);
         var events = objs.map(function(row){ return rowToEvent(row, src.name); }).filter(Boolean);
-        return { name: src.name, ok: true, events: events };
-      })
-      .catch(function(){
-        return { name: src.name, ok: false, events: [] };
-      });
+        if(!events.length) throw new Error('empty data');
+        return { name: src.name, ok: true, events: events, endpoint: i === 0 && src.gid !== undefined ? 'export' : 'gviz' };
+      }).catch(function(){ return attempt(i+1); });
+    }
+    return attempt(0).catch(function(){
+      return { name: src.name, ok: false, events: [] };
+    });
   }
 
   function refreshData(opts){
@@ -1196,8 +1209,11 @@
   }
   function collectSheetRows(){
     return Array.prototype.map.call(document.querySelectorAll('.sheet-row'), function(row){
+      var name = row.querySelector('.sheet-name').value.trim();
+      var prev = (CONFIG.PRODUCTS || []).filter(function(p){ return p && p.name === name; })[0];
       return {
-        name: row.querySelector('.sheet-name').value.trim(),
+        name: name,
+        gid: prev && prev.gid !== undefined ? prev.gid : null,
         url: row.querySelector('.sheet-url').value.trim()
       };
     }).filter(function(p){ return p.name; });
