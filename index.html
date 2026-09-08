@@ -366,6 +366,15 @@
   .store-checklist-card .cadence-summary-card:hover{border-color:var(--cat-store);}
   .store-checklist-card .cadence-summary-card.is-open{border-color:var(--cat-store);}
 
+  .recurring-cadence-toggle{
+    width:100%;border:1px dashed var(--border);background:var(--surface-soft);color:var(--text);
+    border-radius:10px;padding:10px 12px;font-size:12px;font-weight:800;cursor:pointer;text-align:center;
+  }
+  .recurring-cadence-toggle:hover{background:var(--surface-hover);border-color:var(--accent);}
+  .recurring-cadence-wrap{display:grid;grid-template-columns:1fr;gap:12px;}
+  .recurring-cadence-wrap[hidden]{display:none!important;}
+  .store-checklist-card .recurring-cadence-toggle:hover{border-color:var(--cat-store);}
+
   /* ---------- Modal ---------- */
   .modal-overlay{
     position:fixed;inset:0;background:rgba(15,17,26,.45);display:flex;align-items:center;
@@ -1262,22 +1271,30 @@
       prefix=prefix||'cadenceDetail_';
       var cadenceOrder=['일회성','일별','주차별','월별','필요시'];
       var cadenceDisplay={'일회성':'일회성','일별':'일별','주차별':'주별','월별':'월별','필요시':'필요시'};
-      var html='<div class="cadence-summary-grid">';
+      var recurringWrapId=prefix+'recurringWrap';
+      var onceHtml='', recurringHtml='';
+
       cadenceOrder.forEach(function(c,idx){
         var items=sortItems(list.filter(function(ev){return c==='일회성'?isOneTime(ev):cadenceLabel(ev.cadence)===c;}));
         var id=prefix+idx;
         var isOnce=c==='일회성';
         var handled=items.filter(isHandled).length,pct=items.length?Math.round(handled/items.length*100):0;
-        html+='<div class="cadence-summary-card'+(isOnce&&items.length?' is-open':'')+'" data-target="'+id+'"><div class="cadence-summary-head"><span class="cadence-summary-title">'+cadenceDisplay[c]+'</span><span class="cadence-summary-meta">'+items.length+'개 항목</span></div>';
+        var card='<div class="cadence-summary-card" data-target="'+id+'"><div class="cadence-summary-head"><span class="cadence-summary-title">'+cadenceDisplay[c]+'</span><span class="cadence-summary-meta">'+items.length+'개 항목</span></div>';
         if(isOnce){
-          html+='<div class="cadence-once-progress"><div class="cadence-once-value">'+pct+'%</div><div class="cadence-once-sub">처리 '+handled+'/'+items.length+' · 완료 + 해당없음 기준</div><div class="cat-metric-bar"><div class="cat-metric-bar-fill" style="width:'+pct+'%;background:var(--accent)"></div></div></div>';
+          card+='<div class="cadence-once-progress"><div class="cadence-once-value">'+pct+'%</div><div class="cadence-once-sub">처리 '+handled+'/'+items.length+' · 완료 + 해당없음 기준</div><div class="cat-metric-bar"><div class="cat-metric-bar-fill" style="width:'+pct+'%;background:var(--accent)"></div></div></div>';
         }else{
-          html+='<div class="cadence-once-progress"><div class="cadence-once-sub">'+(items.length?'반복 운영 항목 · 완료율을 계산하지 않습니다.':'등록된 항목이 없습니다.')+'</div></div>';
+          card+='<div class="cadence-once-progress"><div class="cadence-once-sub">'+(items.length?'반복 운영 항목 · 완료율을 계산하지 않습니다.':'등록된 항목이 없습니다.')+'</div></div>';
         }
-        html+='<button class="cadence-list-toggle" type="button" data-target="'+id+'"'+(items.length?'':' disabled')+'>'+(isOnce&&items.length?'리스트 접기 ▴':'리스트 상세보기 ▾')+'</button><div class="cadence-list-wrap" id="'+id+'"'+(isOnce&&items.length?'':' hidden')+'>';
-        items.forEach(function(ev){html+=chkRowHtml(ev);});
-        html+='</div></div>';
+        card+='<button class="cadence-list-toggle" type="button" data-target="'+id+'"'+(items.length?'':' disabled')+'>리스트 상세보기 ▾</button><div class="cadence-list-wrap" id="'+id+'" hidden>';
+        items.forEach(function(ev){card+=chkRowHtml(ev);});
+        card+='</div></div>';
+        if(isOnce) onceHtml=card; else recurringHtml+=card;
       });
+
+      var recurringCount=list.filter(function(ev){return !isOneTime(ev);}).length;
+      var html='<div class="cadence-summary-grid">'+onceHtml;
+      html+='<button class="recurring-cadence-toggle" type="button" data-target="'+recurringWrapId+'">일별 · 주별 · 월별 · 필요시 펼쳐보기 ('+recurringCount+'개) ▾</button>';
+      html+='<div class="recurring-cadence-wrap" id="'+recurringWrapId+'" hidden>'+recurringHtml+'</div>';
       return html+'</div>';
     }
 
@@ -1334,6 +1351,16 @@
         var willOpen=target.hidden;
         target.hidden=!willOpen;
         btn.textContent=willOpen?'리스트 접기 ▴':'리스트 상세보기 ▾';
+      };
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .recurring-cadence-toggle, #storeChecklistBody .recurring-cadence-toggle'),function(btn){
+      btn.onclick=function(){
+        var target=document.getElementById(btn.getAttribute('data-target'));
+        if(!target) return;
+        var willOpen=target.hidden;
+        target.hidden=!willOpen;
+        btn.textContent=willOpen?'일별 · 주별 · 월별 · 필요시 접기 ▴':'일별 · 주별 · 월별 · 필요시 펼쳐보기 ▾';
       };
     });
 
