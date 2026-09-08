@@ -26,6 +26,7 @@
     --cat-retention:#10b981;
     --cat-issue:#ec4899;
     --cat-store:#10b981;
+    --cat-platform:#0ea5e9;
     --cat-new:#e11d48;
     --cat-season:#7c3aed;
     --cat-content:#06b6d4;
@@ -351,6 +352,11 @@
   .cat-detail-wrap .chk-cadence{margin-left:0;}
   @media(max-width:760px){.cat-summary-grid,.cadence-summary-grid{grid-template-columns:1fr}.cat-metrics{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
+  /* ---------- Store checklist split ---------- */
+  .store-checklist-section{margin-top:22px;padding-top:20px;border-top:1px solid var(--border);}
+  .store-checklist-section h2{font-size:16px;margin:0 0 12px;font-weight:800;}
+  .store-checklist-section[hidden]{display:none!important;}
+
   /* ---------- Modal ---------- */
   .modal-overlay{
     position:fixed;inset:0;background:rgba(15,17,26,.45);display:flex;align-items:center;
@@ -481,6 +487,18 @@
       </label>
     </div>
     <div id="pdBody"></div>
+
+    <div class="store-checklist-section" id="storeChecklistSection" hidden>
+      <h2>🏪 스토어 관리 체크리스트</h2>
+      <div class="chk-overall">
+        <div class="chk-overall-top">
+          <div class="chk-overall-pct" id="storeOverallPct">0%</div>
+          <div class="chk-overall-sub" id="storeOverallSub"></div>
+        </div>
+        <div class="chk-overall-bar"><div class="chk-overall-bar-fill" id="storeOverallBarFill" style="width:0%;background:var(--cat-store)"></div></div>
+      </div>
+      <div id="storeChecklistBody"></div>
+    </div>
   </div>
 
   <footer class="app-footer">구글 스프레드시트와 연동되는 제품별 마케팅 체크리스트 & 타임라인 대시보드 · index.html 파일 하나로 동작합니다</footer>
@@ -575,9 +593,9 @@
     hiddenCats: {}
   };
 
-  var CAT_ORDER = ['brand','growth','retention','store','new','season','storeAll','adAll','content','pr','crm','market','issue','etc'];
-  var CAT_LABEL = {brand:'기초 설계',growth:'광고 운영',retention:'리텐션·사후관리',store:'스토어 관리',new:'신제품·시장 이슈',season:'시즌 마케팅',storeAll:'스토어 통합관리',adAll:'광고 통합관리',content:'콘텐츠·SNS',pr:'인플루언서·PR',crm:'고객·CRM',market:'경쟁사·시장',issue:'주요 이슈',etc:'기타'};
-  var CAT_COLOR = {brand:'var(--cat-brand)',growth:'var(--cat-growth)',retention:'var(--cat-retention)',store:'var(--cat-store)',new:'var(--cat-new)',season:'var(--cat-season)',storeAll:'var(--cat-store)',adAll:'var(--cat-growth)',content:'var(--cat-content)',pr:'var(--cat-pr)',crm:'var(--cat-crm)',market:'var(--cat-market)',issue:'var(--cat-issue)',etc:'var(--cat-etc)'};
+  var CAT_ORDER = ['brand','growth','retention','platform','store','new','season','storeAll','adAll','content','pr','crm','market','issue','etc'];
+  var CAT_LABEL = {brand:'기초 설계',growth:'광고 운영',retention:'리텐션·사후관리',platform:'플랫폼 운영',store:'스토어 관리',new:'신제품·시장 이슈',season:'시즌 마케팅',storeAll:'스토어 통합관리',adAll:'광고 통합관리',content:'콘텐츠·SNS',pr:'인플루언서·PR',crm:'고객·CRM',market:'경쟁사·시장',issue:'주요 이슈',etc:'기타'};
+  var CAT_COLOR = {brand:'var(--cat-brand)',growth:'var(--cat-growth)',retention:'var(--cat-retention)',platform:'var(--cat-platform)',store:'var(--cat-store)',new:'var(--cat-new)',season:'var(--cat-season)',storeAll:'var(--cat-store)',adAll:'var(--cat-growth)',content:'var(--cat-content)',pr:'var(--cat-pr)',crm:'var(--cat-crm)',market:'var(--cat-market)',issue:'var(--cat-issue)',etc:'var(--cat-etc)'};
 
   /* =====================================================
      2. 유틸리티
@@ -631,7 +649,7 @@
   function isHandled(ev){ return ev.statusKey === 'done' || ev.statusKey === 'na'; }
   function getCategoryMeta(raw){
     var s=(raw||'').trim(), compact=s.replace(/\s/g,'');
-    var map={'기초설계':'brand','광고운영':'growth','광고·그로스운영':'growth','리텐션·사후관리':'retention','리텐션사후관리':'retention','스토어관리':'store','신제품·시장이슈':'new','시즌마케팅':'season','스토어통합관리':'storeAll','광고통합관리':'adAll','콘텐츠·SNS':'content','콘텐츠SNS':'content','인플루언서·PR':'pr','인플루언서PR':'pr','고객·CRM':'crm','고객CRM':'crm','경쟁사·시장':'market','경쟁사시장':'market','주요이슈':'issue'};
+    var map={'기초설계':'brand','광고운영':'growth','광고·그로스운영':'growth','리텐션·사후관리':'retention','리텐션사후관리':'retention','플랫폼운영':'platform','스토어관리':'store','신제품·시장이슈':'new','시즌마케팅':'season','스토어통합관리':'storeAll','광고통합관리':'adAll','콘텐츠·SNS':'content','콘텐츠SNS':'content','인플루언서·PR':'pr','인플루언서PR':'pr','고객·CRM':'crm','고객CRM':'crm','경쟁사·시장':'market','경쟁사시장':'market','주요이슈':'issue'};
     var key=map[compact]||'etc';
     return {key:key,label:s||CAT_LABEL[key],color:CAT_COLOR[key]};
   }
@@ -1157,12 +1175,17 @@
 
   function renderProductDetail(){
     var section=document.getElementById('productDetail');
-    if(state.selectedProduct==='ALL'){section.hidden=true;return;}
+    var storeSection=document.getElementById('storeChecklistSection');
+    if(state.selectedProduct==='ALL'){section.hidden=true;if(storeSection)storeSection.hidden=true;return;}
     section.hidden=false;
     var p=state.selectedProduct;
-    document.getElementById('pdTitle').textContent=p==='종합'?'📋 종합 마케팅 관리':'📋 '+p+' 마케팅 체크 리스트';
+    document.getElementById('pdTitle').textContent=p==='종합'?'📋 종합 마케팅 관리':'📋 '+p+' 마케팅 체크리스트';
     var all=getFilteredEvents().filter(function(ev){return ev.product===p;});
-    var oneTime=all.filter(isOneTime), total=oneTime.length, handled=oneTime.filter(isHandled).length;
+    var isStoreItem=function(ev){return ev.catMeta && ev.catMeta.key==='store';};
+    var marketingAll=p==='종합'?all:all.filter(function(ev){return !isStoreItem(ev);});
+    var storeAll=p==='종합'?[]:all.filter(isStoreItem);
+
+    var oneTime=marketingAll.filter(isOneTime), total=oneTime.length, handled=oneTime.filter(isHandled).length;
     var completedOnly=oneTime.filter(function(e){return e.statusKey==='done';}).length;
     var na=oneTime.filter(function(e){return e.statusKey==='na';}).length;
     var progress=oneTime.filter(function(e){return e.statusKey==='progress';}).length;
@@ -1184,9 +1207,7 @@
         return ad-bd||a.title.localeCompare(b.title,'ko');
       });
     }
-    function cadenceLabel(c){
-      return normalizeCadenceValue(c);
-    }
+    function cadenceLabel(c){ return normalizeCadenceValue(c); }
     function cadenceMetric(catItems, cadence){
       var items=catItems.filter(function(ev){return cadenceLabel(ev.cadence)===cadence;});
       var done=items.filter(isHandled).length;
@@ -1210,7 +1231,7 @@
         {key:'brand',label:'기초 설계'},
         {key:'growth',label:'광고 운영'},
         {key:'retention',label:'리텐션·사후관리'},
-        {key:'store',label:'스토어 관리'}
+        {key:'platform',label:'플랫폼 운영'}
       ];
       var html='<div class="cat-summary-grid">';
       wanted.forEach(function(cfg,idx){
@@ -1228,13 +1249,14 @@
       });
       return html+'</div>';
     }
-    function productCadenceCards(list){
+    function productCadenceCards(list,prefix){
+      prefix=prefix||'cadenceDetail_';
       var cadenceOrder=['일회성','일별','주차별','월별','필요시'];
       var cadenceDisplay={'일회성':'일회성','일별':'일별','주차별':'주별','월별':'월별','필요시':'필요시'};
       var html='<div class="cadence-summary-grid">';
       cadenceOrder.forEach(function(c,idx){
         var items=sortItems(list.filter(function(ev){return c==='일회성'?isOneTime(ev):cadenceLabel(ev.cadence)===c;}));
-        var id='cadenceDetail_'+idx;
+        var id=prefix+idx;
         var isOnce=c==='일회성';
         var handled=items.filter(isHandled).length,pct=items.length?Math.round(handled/items.length*100):0;
         html+='<div class="cadence-summary-card" data-target="'+id+'"><div class="cadence-summary-head"><span class="cadence-summary-title">'+cadenceDisplay[c]+'</span><span class="cadence-summary-meta">'+items.length+'개 항목</span></div>';
@@ -1252,7 +1274,6 @@
 
     var body;
     if(p==='종합'){
-      /* 종합 시트는 기존 방식으로 모든 카테고리를 펼쳐 표시 */
       var byCat={}; all.forEach(function(ev){(byCat[ev.catMeta.key]=byCat[ev.catMeta.key]||[]).push(ev);});
       body='<div class="chk-block">';
       CAT_ORDER.forEach(function(key){
@@ -1262,10 +1283,27 @@
       });
       body+='</div>';
     }else{
-      body=state.productDetailView==='cadence'?productCadenceCards(all):productCategoryCards(all);
+      body=state.productDetailView==='cadence'?productCadenceCards(marketingAll,'cadenceDetail_'):productCategoryCards(marketingAll);
     }
-    if(!all.length) body='<div class="pd-empty">이 시트에 등록된 체크리스트 항목이 없습니다.</div>';
+    if(!marketingAll.length) body='<div class="pd-empty">이 시트에 등록된 마케팅 체크리스트 항목이 없습니다.</div>';
     document.getElementById('pdBody').innerHTML=body;
+
+    if(storeSection){
+      storeSection.hidden=(p==='종합');
+      if(p!=='종합'){
+        var storeOneTime=storeAll.filter(isOneTime),storeTotal=storeOneTime.length,storeHandled=storeOneTime.filter(isHandled).length;
+        var storeDone=storeOneTime.filter(function(e){return e.statusKey==='done';}).length;
+        var storeNa=storeOneTime.filter(function(e){return e.statusKey==='na';}).length;
+        var storeProgress=storeOneTime.filter(function(e){return e.statusKey==='progress';}).length;
+        var storeReview=storeOneTime.filter(function(e){return e.statusKey==='review';}).length;
+        var storeNotstarted=storeOneTime.filter(function(e){return e.statusKey==='notstarted';}).length;
+        var storePct=storeTotal?Math.round(storeHandled/storeTotal*100):0;
+        document.getElementById('storeOverallPct').textContent=storePct+'%';
+        document.getElementById('storeOverallSub').textContent='일회성 기준 · 처리 '+storeHandled+'/'+storeTotal+' (완료 '+storeDone+(storeNa?' · 해당없음 '+storeNa:'')+') · 진행중 '+storeProgress+' · 재점검 필요 '+storeReview+' · 미착수 '+storeNotstarted;
+        document.getElementById('storeOverallBarFill').style.width=storePct+'%';
+        document.getElementById('storeChecklistBody').innerHTML=storeAll.length?productCadenceCards(storeAll,'storeCadenceDetail_'):'<div class="pd-empty">등록된 스토어 관리 체크리스트 항목이 없습니다.</div>';
+      }
+    }
 
     var viewSwitch=document.getElementById('pdViewSwitch');
     var sortWrap=document.getElementById('pdSortWrap');
@@ -1290,7 +1328,7 @@
       };
     });
 
-    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cadence-summary-card'),function(card){
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cadence-summary-card, #storeChecklistBody .cadence-summary-card'),function(card){
       card.onclick=function(e){
         if(e.target.closest && e.target.closest('.chk-row')) return;
         var target=document.getElementById(card.getAttribute('data-target'));
@@ -1303,7 +1341,7 @@
       };
     });
 
-    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cadence-list-toggle'),function(btn){
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .cadence-list-toggle, #storeChecklistBody .cadence-list-toggle'),function(btn){
       btn.onclick=function(e){
         e.stopPropagation();
         var card=btn.closest('.cadence-summary-card');
@@ -1311,7 +1349,7 @@
       };
     });
 
-    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .chk-row'),function(row){
+    Array.prototype.forEach.call(document.querySelectorAll('#pdBody .chk-row, #storeChecklistBody .chk-row'),function(row){
       row.onclick=function(e){
         e.stopPropagation();
         var id=+row.getAttribute('data-eid'),ev=state.events[id];
