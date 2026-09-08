@@ -353,9 +353,18 @@
   @media(max-width:760px){.cat-summary-grid,.cadence-summary-grid{grid-template-columns:1fr}.cat-metrics{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
   /* ---------- Store checklist split ---------- */
-  .store-checklist-section{margin-top:22px;padding-top:20px;border-top:1px solid var(--border);}
-  .store-checklist-section h2{font-size:16px;margin:0 0 12px;font-weight:800;}
-  .store-checklist-section[hidden]{display:none!important;}
+  .store-checklist-card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow);margin-bottom:20px;
+  }
+  .store-checklist-card h2{font-size:16px;margin:0 0 12px;font-weight:800;}
+  .store-checklist-card[hidden]{display:none!important;}
+  .store-checklist-card #storeOverallPct{color:var(--cat-store);}
+  .store-checklist-card #storeOverallBarFill{background:var(--cat-store)!important;}
+  .store-checklist-card .cadence-once-value{color:var(--cat-store);}
+  .store-checklist-card .cat-metric-bar-fill{background:var(--cat-store)!important;}
+  .store-checklist-card .cadence-summary-card:hover{border-color:var(--cat-store);}
+  .store-checklist-card .cadence-summary-card.is-open{border-color:var(--cat-store);}
 
   /* ---------- Modal ---------- */
   .modal-overlay{
@@ -487,18 +496,18 @@
       </label>
     </div>
     <div id="pdBody"></div>
+  </div>
 
-    <div class="store-checklist-section" id="storeChecklistSection" hidden>
-      <h2>🏪 스토어 관리 체크리스트</h2>
-      <div class="chk-overall">
-        <div class="chk-overall-top">
-          <div class="chk-overall-pct" id="storeOverallPct">0%</div>
-          <div class="chk-overall-sub" id="storeOverallSub"></div>
-        </div>
-        <div class="chk-overall-bar"><div class="chk-overall-bar-fill" id="storeOverallBarFill" style="width:0%;background:var(--cat-store)"></div></div>
+  <div class="store-checklist-card" id="storeChecklistSection" hidden>
+    <h2>🏪 스토어 관리 체크리스트</h2>
+    <div class="chk-overall">
+      <div class="chk-overall-top">
+        <div class="chk-overall-pct" id="storeOverallPct">0%</div>
+        <div class="chk-overall-sub" id="storeOverallSub"></div>
       </div>
-      <div id="storeChecklistBody"></div>
+      <div class="chk-overall-bar"><div class="chk-overall-bar-fill" id="storeOverallBarFill" style="width:0%;background:var(--cat-store)"></div></div>
     </div>
+    <div id="storeChecklistBody"></div>
   </div>
 
   <footer class="app-footer">구글 스프레드시트와 연동되는 제품별 마케팅 체크리스트 & 타임라인 대시보드 · index.html 파일 하나로 동작합니다</footer>
@@ -1259,13 +1268,13 @@
         var id=prefix+idx;
         var isOnce=c==='일회성';
         var handled=items.filter(isHandled).length,pct=items.length?Math.round(handled/items.length*100):0;
-        html+='<div class="cadence-summary-card" data-target="'+id+'"><div class="cadence-summary-head"><span class="cadence-summary-title">'+cadenceDisplay[c]+'</span><span class="cadence-summary-meta">'+items.length+'개 항목</span></div>';
+        html+='<div class="cadence-summary-card'+(isOnce&&items.length?' is-open':'')+'" data-target="'+id+'"><div class="cadence-summary-head"><span class="cadence-summary-title">'+cadenceDisplay[c]+'</span><span class="cadence-summary-meta">'+items.length+'개 항목</span></div>';
         if(isOnce){
           html+='<div class="cadence-once-progress"><div class="cadence-once-value">'+pct+'%</div><div class="cadence-once-sub">처리 '+handled+'/'+items.length+' · 완료 + 해당없음 기준</div><div class="cat-metric-bar"><div class="cat-metric-bar-fill" style="width:'+pct+'%;background:var(--accent)"></div></div></div>';
         }else{
           html+='<div class="cadence-once-progress"><div class="cadence-once-sub">'+(items.length?'반복 운영 항목 · 완료율을 계산하지 않습니다.':'등록된 항목이 없습니다.')+'</div></div>';
         }
-        html+='<button class="cadence-list-toggle" type="button" data-target="'+id+'"'+(items.length?'':' disabled')+'>리스트 상세보기 ▾</button><div class="cadence-list-wrap" id="'+id+'" hidden>';
+        html+='<button class="cadence-list-toggle" type="button" data-target="'+id+'"'+(items.length?'':' disabled')+'>'+(isOnce&&items.length?'리스트 접기 ▴':'리스트 상세보기 ▾')+'</button><div class="cadence-list-wrap" id="'+id+'"'+(isOnce&&items.length?'':' hidden')+'>';
         items.forEach(function(ev){html+=chkRowHtml(ev);});
         html+='</div></div>';
       });
