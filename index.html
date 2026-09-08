@@ -25,7 +25,7 @@
     --cat-growth:#f97316;
     --cat-retention:#10b981;
     --cat-issue:#ec4899;
-    --cat-store:#0ea5e9;
+    --cat-store:#10b981;
     --cat-new:#e11d48;
     --cat-season:#7c3aed;
     --cat-content:#06b6d4;
@@ -201,6 +201,19 @@
     color:#fff;cursor:pointer;z-index:6;box-shadow:0 1px 2px rgba(0,0,0,.16);
   }
   .calendar-span-bar:hover{filter:brightness(.9);}
+  .calendar-span-bar.grouped{
+    background:linear-gradient(90deg,var(--accent),#6366f1);
+    border:1px solid rgba(255,255,255,.18);
+    padding-right:24px;
+  }
+  .calendar-span-bar.grouped::after{
+    content:'▾';position:absolute;right:7px;top:0;font-size:10px;opacity:.9;
+  }
+  .group-product-section{border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;}
+  .group-product-section:last-child{margin-bottom:0;}
+  .group-product-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--surface-soft);font-size:12.5px;font-weight:900;}
+  .group-product-count{font-size:10.5px;color:var(--muted);font-weight:800;}
+  .group-product-body{padding:10px;}
 
 
   /* ---------- Product overview (leaderboard, ALL view) ---------- */
@@ -929,6 +942,46 @@
       .sort(function(a,b){ return a.start - b.start || a.catMeta.key.localeCompare(b.catMeta.key); });
   }
 
+  function groupRangedEventsForCalendar(rangedEvents){
+    /* 전체 보기에서는 시작일·종료일이 완전히 같은 제품 일정을 한 줄로 묶는다.
+       종합 일정은 제품 일정과 섞지 않고 기존처럼 개별 표시한다. */
+    if(state.selectedProduct !== 'ALL'){
+      return rangedEvents.map(function(ev){ return { events:[ev], start:ev.start, end:ev.end, grouped:false }; });
+    }
+
+    var map = {};
+    var singles = [];
+    rangedEvents.forEach(function(ev){
+      if(ev.overall){
+        singles.push({ events:[ev], start:ev.start, end:ev.end, grouped:false });
+        return;
+      }
+      var key = ymd(ev.start) + '|' + ymd(ev.end);
+      if(!map[key]) map[key] = { events:[], start:ev.start, end:ev.end, grouped:false };
+      map[key].events.push(ev);
+    });
+
+    Object.keys(map).forEach(function(key){
+      var g = map[key];
+      g.grouped = g.events.length > 1;
+      singles.push(g);
+    });
+    return singles;
+  }
+
+  function groupedBarLabel(group){
+    if(!group.grouped) {
+      var ev = group.events[0];
+      var prefix = ev.overall ? '' : (state.selectedProduct === 'ALL' ? '['+ev.product+'] ' : '');
+      return prefix + ev.title;
+    }
+    var products = [];
+    group.events.forEach(function(ev){ if(products.indexOf(ev.product) < 0) products.push(ev.product); });
+    var shown = products.slice(0,3).join(' · ');
+    if(products.length > 3) shown += ' 외 ' + (products.length-3) + '개';
+    return shown + '  (' + group.events.length + '개 일정)';
+  }
+
   function renderCalendar(){
     var y = state.viewYear, m = state.viewMonth;
     document.getElementById('monthLabel').textContent = y + '년 ' + (m+1) + '월';
@@ -949,15 +1002,15 @@
     var gridStart = new Date(y, m, 1 - startWeekday);
     var gridEnd = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + totalCells - 1);
 
-    /* 시작일~종료일이 2일 이상인 일정은 하루씩 반복하지 않고 주 단위 연속 막대로 표시 */
     var rangedEvents = filtered.filter(function(ev){
       return ev.start && ev.end && ymd(ev.start) !== ymd(ev.end) && ev.end >= gridStart && ev.start <= gridEnd;
     });
+    var rangedGroups = groupRangedEventsForCalendar(rangedEvents);
 
     var weekSegments = {};
-    rangedEvents.forEach(function(ev){
-      var clippedStart = ev.start < gridStart ? gridStart : ev.start;
-      var clippedEnd = ev.end > gridEnd ? gridEnd : ev.end;
+    rangedGroups.forEach(function(group){
+      var clippedStart = group.start < gridStart ? gridStart : group.start;
+      var clippedEnd = group.end > gridEnd ? gridEnd : group.end;
       var cursor = startOfDay(clippedStart);
       while(cursor <= clippedEnd){
         var cellIndex = Math.round((cursor - gridStart) / 86400000);
@@ -966,7 +1019,7 @@
         var segEnd = clippedEnd < weekEnd ? clippedEnd : weekEnd;
         var span = Math.round((startOfDay(segEnd) - cursor) / 86400000) + 1;
         (weekSegments[weekIndex] = weekSegments[weekIndex] || []).push({
-          ev:ev,
+          group:group,
           startIndex:cellIndex,
           span:span
         });
@@ -976,7 +1029,8 @@
 
     Object.keys(weekSegments).forEach(function(k){
       weekSegments[k].sort(function(a,b){
-        return a.startIndex-b.startIndex || b.span-a.span || a.ev.title.localeCompare(b.ev.title,'ko');
+        var al = groupedBarLabel(a.group), bl = groupedBarLabel(b.group);
+        return a.startIndex-b.startIndex || b.span-a.span || al.localeCompare(bl,'ko');
       });
       weekSegments[k].forEach(function(seg,lane){ seg.lane=lane; });
     });
@@ -1004,18 +1058,21 @@
       dnum.textContent = cellDate.getDate();
       cell.appendChild(dnum);
 
-      /* 이 셀에서 시작하는 주간 연속 막대만 생성 */
       (weekSegments[weekIndex] || []).forEach(function(seg){
         if(seg.startIndex !== i) return;
         var bar = document.createElement('div');
-        bar.className = 'calendar-span-bar';
+        bar.className = 'calendar-span-bar' + (seg.group.grouped ? ' grouped' : '');
         bar.style.top = (34 + seg.lane * 22) + 'px';
         bar.style.width = 'calc(' + (seg.span * 100) + '% - 12px)';
-        bar.style.background = seg.ev.catMeta.color;
-        var prefix = seg.ev.overall ? '' : (state.selectedProduct === 'ALL' ? '['+seg.ev.product+'] ' : '');
-        bar.textContent = prefix + seg.ev.title;
-        bar.title = fmtRange(seg.ev) + ' · ' + prefix + seg.ev.title;
-        bar.onclick = function(e){ e.stopPropagation(); openItemModal(seg.ev); };
+        if(!seg.group.grouped) bar.style.background = seg.group.events[0].catMeta.color;
+        var label = groupedBarLabel(seg.group);
+        bar.textContent = label;
+        bar.title = fmtRange(seg.group.events[0]) + ' · ' + label + (seg.group.grouped ? ' · 클릭하여 상세보기' : '');
+        bar.onclick = function(e){
+          e.stopPropagation();
+          if(seg.group.grouped) openGroupedTimelineModal(seg.group);
+          else openItemModal(seg.group.events[0]);
+        };
         cell.appendChild(bar);
       });
 
@@ -1274,6 +1331,27 @@
     body.innerHTML = evs.length === 0
       ? '<div class="pd-empty">해당 날짜에 일정이 없습니다.</div>'
       : evs.map(buildEventCardHtml).join('');
+    document.getElementById('dayModal').hidden = false;
+  }
+
+  function openGroupedTimelineModal(group){
+    var events = group.events.slice().sort(function(a,b){
+      return a.product.localeCompare(b.product,'ko') || a.catMeta.key.localeCompare(b.catMeta.key) || a.title.localeCompare(b.title,'ko');
+    });
+    var products = [];
+    events.forEach(function(ev){ if(products.indexOf(ev.product) < 0) products.push(ev.product); });
+
+    document.getElementById('dayModalTitle').textContent = '묶음 일정 상세';
+    document.getElementById('dayModalSub').textContent = fmtRange(events[0]) + ' · ' + products.length + '개 제품 · ' + events.length + '개 일정';
+
+    var html = products.map(function(product){
+      var list = events.filter(function(ev){ return ev.product === product; });
+      return '<div class="group-product-section">' +
+        '<div class="group-product-head"><span>' + escapeHtml(product) + '</span><span class="group-product-count">' + list.length + '개 일정</span></div>' +
+        '<div class="group-product-body">' + list.map(buildEventCardHtml).join('') + '</div>' +
+      '</div>';
+    }).join('');
+    document.getElementById('dayModalBody').innerHTML = html;
     document.getElementById('dayModal').hidden = false;
   }
 
